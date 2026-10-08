@@ -1,3 +1,5 @@
 node_modules/
 games.db
 token.json
+games.db*
+.DS_Store
