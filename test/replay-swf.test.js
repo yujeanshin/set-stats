@@ -40,7 +40,7 @@ function gameData(deck, events, n = events.length) {
     events: Object.fromEntries(
       events
         .slice(0, n)
-        .map((e, i) => [
+        .map((e) => [
           e.push_key,
           { user: e.user_id, time: e.time_ms, c1: e.c1, c2: e.c2, c3: e.c3 },
         ]),
