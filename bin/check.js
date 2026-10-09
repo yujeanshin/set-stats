@@ -1,6 +1,9 @@
 import { getIdToken } from "../lib/auth.js";
-import { DB_URL, UID } from "../lib/config.js";
+import { SITE } from "../lib/config.js";
 
+console.log(`${SITE.name} (SET_SITE=${SITE.source})`);
 const token = await getIdToken();
-const res = await fetch(`${DB_URL}/users/${UID}/name.json?auth=${token}`);
+const res = await fetch(
+  `${SITE.dbUrl}/users/${SITE.uid}/name.json?auth=${token}`,
+);
 console.log(res.status, await res.text());

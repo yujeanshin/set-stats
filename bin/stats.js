@@ -1,4 +1,6 @@
-import { UID } from "../lib/config.js";
+import { SITES } from "../lib/config.js";
+
+const UID = SITES.forks.uid;
 import db from "../lib/db.js";
 import { computeState } from "../vendor/game.js";
 

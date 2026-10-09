@@ -1,14 +1,15 @@
 import { getIdToken } from "../lib/auth.js";
-import { DB_URL, UID } from "../lib/config.js";
+import { SITE } from "../lib/config.js";
 import db from "../lib/db.js";
 import { setMeta } from "../lib/schema.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const BATCH = 5;
-const token = await getIdToken();
 
 async function read(path) {
-  const res = await fetch(`${DB_URL}/${path}.json?auth=${token}`);
+  const res = await fetch(
+    `${SITE.dbUrl}/${path}.json?auth=${await getIdToken()}`,
+  );
   if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
   return res.json();
 }
@@ -22,7 +23,7 @@ const upsert = db.prepare(`
     data_json = excluded.data_json
 `);
 
-const userGames = (await read(`userGames/${UID}`)) ?? {};
+const userGames = (await read(`userGames/${SITE.uid}`)) ?? {};
 const known = new Map(
   db
     .prepare("SELECT id, status FROM sync_raw")
