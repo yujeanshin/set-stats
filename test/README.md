@@ -25,6 +25,7 @@ the tests never write to `data/games.db` and never contact either site. each one
 | `sync.test.js`       | which games sync fetches, and restoring archived games                   |
 | `queries.test.js`    | the web UI uses my user id on each game's site                           |
 | `cardFace.test.js`   | which card digit is which color, shape, shade and number in the web UI   |
+| `badTiming.test.js`  | solo games with a gap under 100 ms are left out of the time stats only   |
 
 ### `replay.test.js`
 

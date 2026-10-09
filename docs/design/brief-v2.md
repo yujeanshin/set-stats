@@ -30,6 +30,7 @@ These add to brief.md section 5 and match `ui/src/definitions.js`.
 - **Find:** a set the site accepted from me (a `finds` row). Selections the site ignored, because they used a taken card or repeated a card, are not finds.
 - **Find time:** as in brief.md: from the previous set anyone found, or from `started_at` for a game's first find, to this one. In the replay it is `finds.elapsed_ms`.
 - **Break:** a gap over 100× its game's median gap, where the median ignores gaps under 100 ms (`breakFlags`, `lib/metrics.js`). With Drop breaks on, the stats leave breaks out; the board replay doesn't.
+- **Bad timing:** a solo game with any gap under 100 ms between accepted sets (`badTiming`, `lib/metrics.js`). In a solo game every gap is my own find, and no one finds a set that fast, so its timestamps are off.
 - **Sets on board:** every set on the board just before the find (`finds.n_sets`), including the ones I didn't take.
 - **Cards left in deck:** cards not yet dealt to the board (`finds.deck_left`).
 - **Fresh:** how many of a set's cards were not on the board at the previous find (`board_sets.n_fresh`). The previous find is anyone's; in a solo game that is my own previous find. It is shown as – for a game's first find.
@@ -63,6 +64,8 @@ The card colors are `#800080`, `#008002` and `#ff0101`, from `lightTheme.custom.
 9. **The arrow keys don't step while focus is in an input.** This includes the slider's thumb, which handles arrows itself, so one key press never moves two steps.
 10. **`fresh` counts from the previous find by anyone**, as in schema.md. This only differs from "since my previous find" in multiplayer games, which don't have the replay yet.
 11. **Breaks: 100× the median, and the median ignores gaps under 100 ms.** At 10×, ordinary slow finds counted as breaks. About 100 games (mostly setwithfriends) have bursts of sets under 100 ms apart, most likely sets that reached the site together after a dropped connection. In a few of them the median gap was 1–6 ms, so every ordinary gap counted as a break, nearly the whole game was subtracted, and the fastest game showed 0:00.0. No one finds a set in under 100 ms, so those gaps are left out of the median. They still count as find times.
+12. **Bad-timing games are left out of the time stats, behind a filter.** 266 of about 22,000 solo games (240 of them setwithfriends normal games) have a gap under 100 ms. The rule is any one such gap rather than a burst of three or more (115 games), because in a solo game even one means the timestamps are off. Skip bad timing (on by default, `skipBadTiming`) leaves them out of the headline tiles, Over time, By window and the best time badge; `npm run stats` skips them too, so By window still matches it. They stay in the games list (tagged), the calendar and the position heatmap, since they were played and positions don't depend on timing. Multiplayer games are never flagged: two players can find sets 50 ms apart.
+13. **The full game page has its own Drop breaks switch.** It sets the same URL filter as the dashboard checkbox, so the choice carries back to the list, and it says how much break time it left out, or that there was none.
 
 ### Version 1 terms that could be misread (not changed)
 
