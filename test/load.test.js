@@ -106,6 +106,8 @@ test("loads every mode and maps game fields", () => {
       pause_time_ms: 5000,
       n_players: 2,
       seed: "v1:00000000000000000000000000000001",
+      source: "forks",
+      deck: null,
     },
   );
   assert.deepEqual(

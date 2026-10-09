@@ -5,10 +5,10 @@ this explains how data moves through the project and why it is built this way. f
 ## data flow
 
 ```
-setwithforks (Firebase)
-      │  npm run sync        bin/sync.js
+setwithforks or setwithfriends (Firebase)
+      │  npm run sync        bin/sync.js, lib/sync.js   (SET_SITE picks the site)
       ▼
-sync_raw                     exact JSON per game (the only data that needs the network)
+sync_raw                     exact JSON per game, tagged with its site (the only data that needs the network)
       │  load                lib/load.js
       ▼
 games, events                one row per game / per submitted selection, every mode
@@ -23,29 +23,46 @@ each layer is built only from the layer above it. everything below `sync_raw` ca
 
 ## why replay at all
 
-the site never stores the board. for each game it keeps only a **seed** (which determines the shuffled deck) and the list of **events** (which three cards someone clicked, and when). to know what the board looked like at any moment, you have to shuffle the deck from the seed and play every event forward, exactly the way the site does.
+the site never stores the board. for each game it keeps only the starting deck and the list of **events** (which three cards someone clicked, and when). setwithforks stores a **seed** that determines the shuffled deck; setwithfriends stores the shuffled **deck** itself. to know what the board looked like at any moment, you have to start from that deck and play every event forward, exactly the way that site does. the two sites refill the board differently after a set is taken, so the replay has one rule for each.
 
 that is too complex for SQL, so it runs once in JavaScript and the results are saved as ordinary rows in `finds` and `board_sets`. after that, questions about boards are plain SQL.
 
 ## files
 
-| file             | role                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------ |
-| `bin/check.js`   | check that the token and user id work                                                |
-| `bin/sync.js`    | download new or recently unfinished games into `sync_raw`; record `last_sync_at`     |
-| `bin/stats.js`   | print summary stats (reads `sync_raw` directly, uses the site's `computeState`)      |
-| `bin/rebuild.js` | load, then derive; see [rebuild modes](#rebuild-modes)                               |
-| `lib/config.js`  | your user id and the site's Firebase settings                                        |
-| `lib/auth.js`    | exchange the refresh token in `data/token.json` for an id token                      |
-| `lib/paths.js`   | locate `data/` relative to the code, so commands work from any folder                |
-| `lib/db.js`      | open `data/games.db` (WAL mode, foreign keys on), run migrations, fill lookups       |
-| `lib/schema.js`  | all table definitions, `migrate()`, `getMeta`/`setMeta`                              |
-| `lib/cards.js`   | card and set helpers: third card, `isSet`, `setId`, `diffMask`, `findSets`, `hasSet` |
-| `lib/lookups.js` | fill `cards` and `sets`                                                              |
-| `lib/load.js`    | parse `sync_raw` into `games` and `events`                                           |
-| `lib/replay.js`  | replay one normal-mode game in memory (no database access)                           |
-| `lib/derive.js`  | run the replay for each game and write `finds` and `board_sets`                      |
-| `vendor/game.js` | unmodified copy of the site's `src/game.js` (see the main README for updating it)    |
+| file                            | role                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `bin/check.js`                  | check that the token and user id work                                                |
+| `bin/sync.js`                   | download new or recently unfinished games into `sync_raw`; record `last_sync_at`     |
+| `bin/stats.js`                  | print summary stats (reads `sync_raw` directly, uses each site's `computeState`)     |
+| `bin/rebuild.js`                | load, then derive; see [rebuild modes](#rebuild-modes)                               |
+| `lib/config.js`                 | one profile per site: your user id, Firebase settings, token file, id prefix         |
+| `lib/auth.js`                   | get an id token from the site's token file, and renew it before it expires           |
+| `lib/sync.js`                   | which games to fetch, and fetching one (restoring archived data); no network itself  |
+| `lib/paths.js`                  | locate `data/` relative to the code, so commands work from any folder                |
+| `lib/db.js`                     | open `data/games.db` (WAL mode, foreign keys on), run migrations, fill lookups       |
+| `lib/schema.js`                 | all table definitions, `migrate()`, `getMeta`/`setMeta`                              |
+| `lib/cards.js`                  | card and set helpers: third card, `isSet`, `setId`, `diffMask`, `findSets`, `hasSet` |
+| `lib/lookups.js`                | fill `cards` and `sets`                                                              |
+| `lib/load.js`                   | parse `sync_raw` into `games` and `events`                                           |
+| `lib/replay.js`                 | replay one normal-mode game in memory (no database access)                           |
+| `lib/findTimes.js`              | find times and breaks per game, for every mode, via each site's `computeState`       |
+| `lib/derive.js`                 | run the replay for each game and write `finds` and `board_sets`                      |
+| `vendor/game.js`                | unmodified copy of setwithforks' `src/game.js` (see the main README for updating it) |
+| `vendor/setwithfriends/util.js` | the game logic of setwithfriends' `src/util.js`, unmodified                          |
+
+## sync (`bin/sync.js`, `lib/sync.js`)
+
+1. read `userGames/{uid}` for the site's user id: every game you joined, with its creation time
+2. pick the games to fetch: those not in `sync_raw` yet, plus stored games that weren't `done` and were created less than a day ago. newest first; `--limit N` keeps the first N
+3. for each game, read `games/{id}` and `gameData/{id}`, and store both as JSON with the site's `source`
+
+game ids are stored with the site's prefix (`swf:` for setwithfriends, none for setwithforks), and the prefix is removed again for requests. setwithfriends only creates ids from letters, digits, `_` and `-` (its `createGame` checks), and setwithforks is a fork of the same code (its current check has not been verified), so a setwithforks id starting with `swf:` is not expected.
+
+setwithfriends archives `gameData` to cloud storage two weeks after a game. when a started game (`done` or `ingame`) comes back with `gameData` null, sync calls the site's `fetchStaleGame` function, which puts the data back in the database, and reads it again. if it is still null, nothing is stored in `sync_raw` for that game. when `fetchStaleGame` answered `restored: false`, the site has no archived copy (its own game page shows "not found" then), so sync records the game in `sync_skipped` and never fetches it again. otherwise the next sync tries again. setwithforks has no functions configured, so this never happens there and missing data is stored as `null`, as before.
+
+each site's profile sets how many games are fetched at once, and how many requests may be in flight (setwithforks: 5 games, no extra limit; setwithfriends: 2 games, 2 requests). every request asks `lib/auth.js` for a token; it renews the id token five minutes before it expires, or uses the `accessToken` from the token file as is until it expires, then stops with an error.
+
+every fetched game is written immediately, so an interrupted sync loses nothing and the next run carries on.
 
 ## loading (`lib/load.js`)
 
@@ -61,14 +78,17 @@ firebase push keys sort in creation order as plain strings, so the tie-break mat
 
 ## replay (`lib/replay.js`)
 
-`replayGame(game, events)` reproduces the site's normal-mode logic. the shuffle uses the site's own `makeRandom` (xoshiro128\*\*) and `generateDeck` from `vendor/game.js`. the board rules below are ported line for line from the same file, because the site doesn't export them.
+`replayGame(game, events)` reproduces the site's normal-mode logic. for setwithforks games, the shuffle uses the site's own `makeRandom` (xoshiro128\*\*) and `generateDeck` from `vendor/game.js`. the board rules below are ported line for line from the sites' code, because neither site exports them.
 
-1. **deck**: all 81 cards in ascending order, shuffled with Fisher-Yates using the seeded PRNG. `current` is the list of cards not yet taken; the board is `current[0 : boardSize]`
+1. **deck**: the game's stored `deck` if it has one (setwithfriends); otherwise all 81 cards in ascending order, shuffled with Fisher-Yates using the seeded PRNG. `current` is the list of cards not yet taken; the board is `current[0 : boardSize]`
 2. **board size**: start at 12. while the board has no set and more cards remain, deal up to the next multiple of 3
 3. **each event, in `seq` order**:
    - skip it if it repeats a card or uses a card already taken (the site ignores these too)
    - otherwise it is a valid find: record the board, positions, `elapsed_ms` and `deck_left`, then remove the three cards
-   - removal keeps the positions of the remaining cards stable where possible: taken cards in the first 12 positions are replaced by cards moved down from position 12 onward, and positions beyond that are simply removed
+   - removal keeps the positions of the remaining cards stable where possible, by a rule that depends on the site (`games.source`):
+     - setwithforks (`removeCards`): taken cards in the first 12 positions are replaced by cards moved down from position 12 onward, filling the lowest positions first, and positions beyond that are simply removed
+     - setwithfriends (`removeCardsSwf`, from `removeCards` in its `src/util.js`): only if all taken cards are in the first 12 positions and at least 15 cards remain, the cards at positions 12, 13, 14 fill the holes in the order the taken cards were clicked. otherwise all taken cards are removed and the rest shift down
+   - the two rules leave the same cards, but often in different positions. using the wrong one would put cards in the wrong places, mostly without any error
    - recompute the board size, starting from `max(boardSize - 3, 12)`
 4. if a valid event's cards are not all on the board, or are not a set, it throws an error naming the game. that would mean the replay disagrees with the site
 
@@ -87,7 +107,7 @@ only `mode = 'normal'` games are derived. other modes use different rules (bigge
 
 | command               | load | derive                                                                     | time on ~3,400 games     |
 | --------------------- | ---- | -------------------------------------------------------------------------- | ------------------------ |
-| `npm run rebuild`     | yes  | drop `finds` and `board_sets`, recreate them, replay **every** normal game | ~6 s                     |
+| `npm run rebuild`     | yes  | drop `finds` and `board_sets`, recreate them, replay **every** normal game | ~6 s (scales with games) |
 | `npm run rebuild:new` | yes  | replay only normal games that have events but no `finds` yet               | <1 s when little changed |
 
 the full rebuild:
@@ -97,7 +117,7 @@ the full rebuild:
 3. derives every normal game
 4. writes `derive_version` only after all games succeed
 
-if a replay fails partway, the error names the game and `derive_version` stays empty, so an incomplete rebuild is visible.
+`bin/rebuild.js` doesn't stop at a game that fails to replay. it prints the game, its date and the error, skips it, and reports at the end how many failed on each site. a failed game has events but no `finds`, so `rebuild:new` tries it again each time. (called without `onError`, as the tests do, `rebuildDerived` and `deriveNew` still throw at the first failure and leave `derive_version` empty.)
 
 the incremental rebuild relies on the loader: new games have no `finds`, and re-synced games had theirs removed by the cascade. so "has events but no finds" is exactly the set of games that need work. if `derive_version` is missing or doesn't match the code, existing rows can't be trusted, so it does a full rebuild instead.
 
@@ -110,11 +130,13 @@ one known gap: if a game's `startedAt` changed on the site while its events stay
 | `SCHEMA_VERSION` | `lib/schema.js` | a table definition changes. add the migration to `migrate()`                                                                    |
 | `DERIVE_VERSION` | `lib/derive.js` | the replay or derive logic changes in a way that changes rows. the next `rebuild:new` will then do a full rebuild automatically |
 
-after updating `vendor/game.js`, run `npm test`. the cross-check test compares the replay with the new copy of the site's code on all your games. if anything changed, bump `DERIVE_VERSION` and run `npm run rebuild`.
+after updating anything in `vendor/`, run `npm test`. the cross-check test compares the replay with the new copy of the site's code on all your games. if anything changed, bump `DERIVE_VERSION` and run `npm run rebuild`.
 
 ## design choices
 
 - **keep the raw JSON.** `sync_raw` keeps exactly what the site returned, so parsing bugs can be fixed and everything re-derived without re-downloading
-- **raw accepts everything, derived is strict.** loading never filters by mode. the replay refuses to guess: any mismatch with the site is an error, not a skipped row
+- **raw accepts everything, derived is strict.** loading never filters by mode or site. the replay refuses to guess: any mismatch with the site is an error for that game, not a silently wrong row
+- **one database for both sites.** games from both sites share every table; `source` says where each came from, and the id prefix keeps ids apart. your user id differs per site, so `my_finds`, stats and the web UI look up the right one for each game
+- **breaks are a view, not data.** the break filter (a gap over 10 times its game's median gap) is applied when stats are computed (`breakFlags` in `lib/metrics.js`); nothing stored changes
 - **one database file.** simpler to back up and query than separate files
 - **WAL journal mode.** a full rebuild commits one transaction per game; WAL halves the time. SQLite keeps `games.db-wal` and `games.db-shm` next to the database. copy all three (or copy while nothing is running) when backing up

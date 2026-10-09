@@ -4,12 +4,15 @@ import fs from "node:fs";
 import { test } from "node:test";
 import { DB_FILE } from "../lib/paths.js";
 import { replayGame } from "../lib/replay.js";
-import { computeState } from "../vendor/game.js";
+import { computeState as forksState } from "../vendor/game.js";
+import { computeState as swfState } from "../vendor/setwithfriends/util.js";
+
+const computeState = { forks: forksState, swf: swfState };
 
 const hasData = fs.existsSync(DB_FILE);
 
 test(
-  "replay matches the site's computeState on every local normal game",
+  "replay matches each site's computeState on every local normal game",
   { skip: !hasData && "no data/games.db" },
   () => {
     const db = new Database(DB_FILE, { readonly: true });
@@ -23,7 +26,7 @@ test(
     );
     for (const g of games) {
       const mine = replayGame(g, eventsOf.all(g.game_id));
-      const theirs = computeState(JSON.parse(g.data_json), "normal");
+      const theirs = computeState[g.source](JSON.parse(g.data_json), "normal");
       assert.deepEqual(
         [
           mine.finds.map((f) => [f.time_ms, f.user_id, ...f.cards]),

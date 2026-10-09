@@ -1,15 +1,15 @@
 # database schema
 
-everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 1) whenever any command opens the database.
+everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 3) whenever any command opens the database.
 
 tables fall into four groups:
 
-| group          | tables                | written by                      | can be rebuilt?              |
-| -------------- | --------------------- | ------------------------------- | ---------------------------- |
-| sync cache     | `sync_raw`            | `npm run sync`                  | only by re-downloading       |
-| raw            | `games`, `events`     | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
-| static lookups | `cards`, `sets`       | automatically on open           | yes, generated from scratch  |
-| derived        | `finds`, `board_sets` | `npm run rebuild` (derive step) | yes, from `games` + `events` |
+| group          | tables                     | written by                      | can be rebuilt?              |
+| -------------- | -------------------------- | ------------------------------- | ---------------------------- |
+| sync cache     | `sync_raw`, `sync_skipped` | `npm run sync`                  | only by re-downloading       |
+| raw            | `games`, `events`          | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
+| static lookups | `cards`, `sets`            | automatically on open           | yes, generated from scratch  |
+| derived        | `finds`, `board_sets`      | `npm run rebuild` (derive step) | yes, from `games` + `events` |
 
 plus `meta` (key/value settings) and the `my_finds` view.
 
@@ -34,11 +34,23 @@ the exact JSON downloaded from the site, one row per game. this is the source of
 
 | column       | type    | notes                                                             |
 | ------------ | ------- | ----------------------------------------------------------------- |
-| `id`         | TEXT PK | game id                                                           |
+| `id`         | TEXT PK | game id, with the site's prefix (`swf:` for setwithfriends)       |
 | `created_at` | INTEGER | from `userGames/{uid}`                                            |
 | `status`     | TEXT    | copied out of `game_json` so sync can tell which games to refetch |
 | `game_json`  | TEXT    | `games/{id}` from Firebase                                        |
-| `data_json`  | TEXT    | `gameData/{id}` from Firebase (seed and events)                   |
+| `data_json`  | TEXT    | `gameData/{id}` from Firebase (seed or deck, and events)          |
+| `source`     | TEXT    | `forks` (setwithforks) or `swf` (setwithfriends)                  |
+
+### `sync_skipped`
+
+games sync has given up on, so it never fetches them again. today that means setwithfriends games for which the site has no archived data. they are not in `sync_raw` or any table below. delete rows here to have sync try those games again.
+
+| column       | type    | notes                           |
+| ------------ | ------- | ------------------------------- |
+| `id`         | TEXT PK | game id, with the site's prefix |
+| `source`     | TEXT    | `forks` or `swf`                |
+| `reason`     | TEXT    | why, e.g. `no archived data`    |
+| `skipped_at` | INTEGER | when sync gave up on it (ms)    |
 
 ## raw tables
 
@@ -48,7 +60,7 @@ parsed from `sync_raw` by `lib/load.js`. every game mode is kept.
 
 | column          | type         | from            | notes                                                                             |
 | --------------- | ------------ | --------------- | --------------------------------------------------------------------------------- |
-| `game_id`       | TEXT PK      | key             |                                                                                   |
+| `game_id`       | TEXT PK      | key             | same as `sync_raw.id`, so setwithfriends ids start with `swf:`                    |
 | `mode`          | TEXT         | `mode`          | `normal`, `puzzle`, `setchain`, `ultraset`, ... (defaults to `normal` if missing) |
 | `status`        | TEXT         | `status`        | `waiting`, `ingame`, `done`                                                       |
 | `access`        | TEXT         | `access`        | `private` or `public`                                                             |
@@ -59,7 +71,9 @@ parsed from `sync_raw` by `lib/load.js`. every game mode is kept.
 | `ended_at`      | INTEGER NULL | `endedAt`       | NULL for unfinished games                                                         |
 | `pause_time_ms` | INTEGER NULL | `pauseTime`     |                                                                                   |
 | `n_players`     | INTEGER      | `users`         | number of keys in `users`                                                         |
-| `seed`          | TEXT         | `gameData.seed` | `v1:` + 32 hex chars; determines the deck order                                   |
+| `seed`          | TEXT         | `gameData.seed` | `v1:` + 32 hex chars; determines the deck order (setwithforks)                    |
+| `source`        | TEXT         | `sync_raw`      | `forks` or `swf`; picks the board refill rule and my user id                      |
+| `deck`          | TEXT NULL    | `gameData.deck` | JSON array of the 81 cards in deck order (setwithfriends, which has no seed)      |
 
 ### `events`
 
@@ -137,11 +151,16 @@ primary key `(game_id, seq, set_id)`.
 
 | key              | written by | meaning                                                                                                                                                           |
 | ---------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `my_user_id`     | every open | `UID` from `lib/config.js`                                                                                                                                        |
+| `my_user_id`     | every open | my user id on setwithforks (`SITES.forks.uid` in `lib/config.js`)                                                                                                 |
+| `my_user_id:swf` | every open | my user id on setwithfriends (`SITES.swf.uid`)                                                                                                                    |
 | `schema_version` | every open | version of the table layout in `lib/schema.js`                                                                                                                    |
 | `derive_version` | rebuild    | version of the derive logic that produced `finds` and `board_sets`. cleared at the start of a full rebuild, so if it is missing the derived tables are incomplete |
 | `last_sync_at`   | sync       | time of the last successful sync (ms)                                                                                                                             |
 
 ### `my_finds` (view)
 
-`finds` filtered to `user_id = meta.my_user_id`.
+`finds` filtered to my finds: `user_id` equals `meta.my_user_id` for setwithforks games and `meta.my_user_id:swf` for setwithfriends games.
+
+## migrations
+
+schema v2 added `sync_raw.source`, `games.source` and `games.deck`. an older database gets them on its next open, with `source = 'forks'` for every existing row, so nothing is downloaded again. schema v3 added the `sync_skipped` table.

@@ -13,6 +13,7 @@ export function useFilters() {
     mode: params.get("mode"), // null: the server picks the most played
     completedOnly: params.get("completedOnly") === "1",
     hintsOff: params.get("hintsOff") !== "0",
+    dropBreaks: params.get("dropBreaks") === "1",
   };
   function setFilters(patch) {
     const next = { ...filters, ...patch };
@@ -22,6 +23,7 @@ export function useFilters() {
         setOrDelete(p, "mode", next.mode);
         setOrDelete(p, "completedOnly", next.completedOnly ? "1" : null);
         setOrDelete(p, "hintsOff", next.hintsOff ? null : "0");
+        setOrDelete(p, "dropBreaks", next.dropBreaks ? "1" : null);
         return p;
       },
       { replace: true },

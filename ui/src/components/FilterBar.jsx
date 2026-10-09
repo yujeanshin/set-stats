@@ -10,7 +10,7 @@ import {
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
 
-/** Mode select, Completed only, Hints off only (brief 6.2). */
+/** Mode select, Completed only, Hints off only (brief 6.2), Drop breaks. */
 export default function FilterBar() {
   const [filters, setFilters] = useFilters();
   const modes = useApi("/modes");
@@ -70,6 +70,16 @@ export default function FilterBar() {
             />
           }
           label="Hints off only"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={filters.dropBreaks}
+              onChange={(e) => setFilters({ dropBreaks: e.target.checked })}
+            />
+          }
+          label="Drop breaks"
+          title="Leave out any gap between sets longer than 10× that game's median gap, from both pace and game time"
         />
       </Stack>
     </Paper>
