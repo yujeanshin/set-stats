@@ -32,6 +32,10 @@ console.log(
   `derived ${derived.finds} finds and ${derived.boardSets} board sets ` +
     `from ${derived.games} normal games`,
 );
+if (derived.neverStarted)
+  console.log(
+    `skipped ${derived.neverStarted} normal games that never started (no deck to replay)`,
+  );
 if (failed.length) {
   const bySource = Object.groupBy(failed, (g) => g.source);
   console.log(
