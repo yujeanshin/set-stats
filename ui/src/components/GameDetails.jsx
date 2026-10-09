@@ -163,19 +163,28 @@ export default function GameDetails({ id, header, titleId, replay = false }) {
   const current = Math.min(step, Math.max(0, boards.mine.length - 1));
   const s = game?.stats;
   const v = (ms) => (game ? secs(ms) : "…");
+  // Total time, then the pace tiles as on the dashboard: the ± is the sample
+  // standard deviation of this game's find times (n < 2: none).
+  const unfinished = game && game.durationMs == null;
   const tiles = [
+    {
+      label: "Total time",
+      value: !game ? "…" : unfinished ? "–" : clock(game.durationMs),
+      suffix: unfinished
+        ? "unfinished"
+        : dropBreaks && game?.break_ms
+          ? "without breaks"
+          : "",
+    },
     {
       label: "Average pace",
       value: v(s?.mean),
-      suffix: "s / set",
+      suffix: [s?.stdev == null ? "" : `± ${secs(s.stdev)}`, "s / set"]
+        .filter(Boolean)
+        .join(" "),
       accent: true,
     },
     { label: "Median pace", value: v(s?.median), suffix: "s / set" },
-    {
-      label: "Std dev of pace",
-      value: v(s?.stdev),
-      suffix: s?.stdev == null ? "" : "s",
-    },
     {
       label: "Range of find times",
       value: s?.min == null ? v(null) : `${secs(s.min)}`,
