@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { rebuildDerived } from "../lib/derive.js";
-import { findTimes, gameDataFromRows, gameTiming } from "../lib/findTimes.js";
+import {
+  breakSeqs,
+  findTimes,
+  gameDataFromRows,
+  gameTiming,
+} from "../lib/findTimes.js";
 import { loadAll } from "../lib/load.js";
 import {
   EVENTS,
@@ -108,12 +113,52 @@ test("dropBreaks leaves the one break in the fixture out of find times", () => {
   );
   assert.deepEqual(gameTiming(game, events, USER), {
     findTimes: all,
+    findSeqs: events.map((e) => e.seq),
     breakMs: 0,
   });
   // a break ended by someone else still counts as break time
   const mixed = events.map((e) => ({ ...e, user_id: "other" }));
   assert.deepEqual(gameTiming(game, mixed, USER, { dropBreaks: true }), {
     findTimes: [],
+    findSeqs: [],
     breakMs: 40569,
   });
+});
+
+test("findSeqs match each find time to its finds row, with breaks dropped", () => {
+  // The break is the gap ending at seq 21, so from there on the i-th find
+  // time is not the i-th find.
+  const timing = gameTiming(game, events, USER, { dropBreaks: true });
+  assert.equal(timing.findSeqs.length, 24);
+  assert.equal(timing.findSeqs.includes(21), false);
+  assert.equal(timing.findSeqs[21], 22);
+  const elapsed = new Map(
+    db
+      .prepare("SELECT seq, elapsed_ms FROM my_finds WHERE game_id = ?")
+      .all(GAME.game_id)
+      .map((r) => [r.seq, r.elapsed_ms]),
+  );
+  timing.findSeqs.forEach((seq, i) =>
+    assert.equal(elapsed.get(seq), timing.findTimes[i], `seq ${seq}`),
+  );
+  assert.deepEqual([...breakSeqs(game, events)], [21]);
+});
+
+test("findSeqs skip events the site ignored", () => {
+  // Resubmit the third set 1 ms later: it reuses taken cards, so the site
+  // ignores it, and every later find's seq is one past its index.
+  const e = events[2];
+  const withDup = [
+    ...events.slice(0, 3),
+    { ...e, push_key: `${e.push_key}x`, time_ms: e.time_ms + 1 },
+    ...events.slice(3),
+  ].map((ev, seq) => ({ ...ev, seq }));
+  const { findTimes: times, findSeqs } = gameTiming(game, withDup, USER);
+  assert.deepEqual(times, findTimes(game, events, USER));
+  assert.deepEqual(findSeqs, [
+    0,
+    1,
+    2,
+    ...events.slice(3).map((ev) => ev.seq + 1),
+  ]);
 });

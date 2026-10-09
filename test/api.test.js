@@ -5,7 +5,14 @@ import { createApi } from "../lib/api.js";
 import { rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
 import { Queries } from "../lib/queries.js";
-import { fixtureRaw, GAME, insertRaw, memoryDb } from "./fixture.js";
+import {
+  EXPECTED,
+  fixtureRaw,
+  GAME,
+  insertRaw,
+  memoryDb,
+  OPENING_BOARD,
+} from "./fixture.js";
 
 const DAY = 86_400_000;
 const db = memoryDb();
@@ -35,6 +42,22 @@ insertRaw(db, {
         .map(([k, e]) => [k, { ...e, time: e.time + DAY }]),
     ),
   }),
+});
+// A two-player ultraset game: not solo, and not normal mode, so it has no
+// finds rows.
+const ULTRA = "ultra-game";
+insertRaw(db, {
+  id: ULTRA,
+  created_at: raw.created_at + 2 * DAY,
+  status: "done",
+  game_json: JSON.stringify({
+    ...game,
+    mode: "ultraset",
+    users: { ...game.users, other: game.createdAt },
+    startedAt: game.startedAt + 2 * DAY,
+    endedAt: game.endedAt + 2 * DAY,
+  }),
+  data_json: JSON.stringify({ seed: data.seed, events: {} }),
 });
 loadAll(db);
 rebuildDerived(db);
@@ -211,4 +234,56 @@ test("positions: share of finds per position, normal mode only", async () => {
   assert.equal(sum.toFixed(9), "3.000000000");
   assert.equal((await get("/positions?hintsOff=0")).body.finds, 35);
   assert.equal((await get("/positions?mode=puzzle")).status, 400);
+});
+
+test("games/:id/finds: boards and sets, matched to bars by findSeqs", async () => {
+  const { body } = await get(`/games/${GAME.game_id}/finds`);
+  assert.equal(body.normalOnly, false);
+  assert.equal(body.n_players, 1);
+  assert.equal(body.finds.length, 25);
+  const [first] = body.finds;
+  assert.deepEqual(first.board, OPENING_BOARD);
+  assert.equal(first.board_size, 12);
+  assert.equal(first.n_sets, 3);
+  assert.equal(first.deck_left, 69);
+  assert.equal(first.elapsed_ms, 2625);
+  assert.equal(first.mine, true);
+  for (const [i, f] of body.finds.entries()) {
+    assert.equal(f.sets.length, f.n_sets);
+    assert.equal(f.sets[0].is_chosen, true, "chosen set comes first");
+    assert.equal(f.sets.filter((s) => s.is_chosen).length, 1);
+    // positions line up with the board and with the fixture's clicks
+    const chosen = f.sets[0];
+    chosen.positions.forEach((p, j) =>
+      assert.equal(f.board[p], chosen.cards[j]),
+    );
+    assert.deepEqual(
+      chosen.positions.toSorted((a, b) => a - b),
+      EXPECTED[i].pos.toSorted((a, b) => a - b),
+    );
+    assert.equal(chosen.n_fresh == null, i === 0, "n_fresh null only first");
+  }
+  assert.equal(first.sets[0].diff_mask.length, 4);
+  // The one break is shown in the replay, flagged.
+  assert.deepEqual(
+    body.finds.filter((f) => f.break).map((f) => f.seq),
+    [21],
+  );
+
+  // Bars with breaks dropped skip seq 21; findSeqs says which find each is.
+  const game = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
+  assert.equal(game.findSeqs.length, game.findTimes.length);
+  const bySeq = new Map(body.finds.map((f) => [f.seq, f]));
+  game.findSeqs.forEach((seq, i) =>
+    assert.equal(bySeq.get(seq).elapsed_ms, game.findTimes[i]),
+  );
+  assert.equal(game.findSeqs[21], 22);
+});
+
+test("games/:id/finds: other modes are flagged, unknown ids are a 404", async () => {
+  const { body } = await get(`/games/${ULTRA}/finds`);
+  assert.equal(body.normalOnly, true);
+  assert.equal(body.n_players, 2);
+  assert.deepEqual(body.finds, []);
+  assert.equal((await get("/games/no-such-game/finds")).status, 404);
 });

@@ -1,6 +1,7 @@
 // Single game view (brief 7), shared by the full page (pages/Game.jsx) and
 // the dialog over the games list (GameDialog.jsx).
 import { Alert, Box, Link, Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
 import { gameSite, gameUrl } from "../gameUrl.js";
@@ -28,6 +29,55 @@ function Subtitle({ game }) {
 }
 
 /**
+ * Board data for one game from /games/:id/finds: my finds by seq, and why
+ * there are none when board features can't be shown. The derived tables
+ * only cover normal mode; multiplayer waits for its own design.
+ */
+function useBoards(id, game) {
+  const { data } = useApi(
+    game ? `/games/${encodeURIComponent(id)}/finds` : null,
+  );
+  return useMemo(() => {
+    if (!game || !data) return { mine: [], note: null };
+    if (data.normalOnly)
+      return {
+        mine: [],
+        note: "Cards on hover and the board replay are for normal mode only.",
+      };
+    if (data.n_players > 1)
+      return {
+        mine: [],
+        note: "Cards on hover and the board replay are for solo games for now; multiplayer comes later.",
+      };
+    const mine = data.finds.filter((f) => f.mine);
+    if (!mine.length && game.findSeqs.length)
+      return {
+        mine,
+        note: "No board data for this game yet. Run npm run rebuild:new to add it.",
+      };
+    return { mine, note: null };
+  }, [game, data]);
+}
+
+/**
+ * One bar per find time, matched to my finds by seq (not by index: with
+ * breaks dropped, the i-th find time isn't always my i-th find).
+ */
+function timeBars(game, mine) {
+  const number = new Map(mine.map((f, i) => [f.seq, i + 1]));
+  const bySeq = new Map(mine.map((f) => [f.seq, f]));
+  return game.findTimes.map((ms, i) => {
+    const seq = game.findSeqs[i];
+    return {
+      ms,
+      number: number.get(seq) ?? i + 1,
+      find: bySeq.get(seq) ?? null,
+      isBreak: false,
+    };
+  });
+}
+
+/**
  * Heading, summary tiles and find times chart for one game.
  * header: shown above the heading. titleId: id for the heading.
  */
@@ -36,6 +86,11 @@ export default function GameDetails({ id, header, titleId }) {
   const { data: game, error } = useApi(`/games/${encodeURIComponent(id)}`, {
     dropBreaks,
   });
+  const boards = useBoards(id, game);
+  const bars = useMemo(
+    () => (game ? timeBars(game, boards.mine) : []),
+    [game, boards],
+  );
   const s = game?.stats;
   const v = (ms) => (game ? secs(ms) : "…");
   const tiles = [
@@ -97,7 +152,11 @@ export default function GameDetails({ id, header, titleId }) {
             ))}
           </Box>
           {game ? (
-            <FindTimesChart findTimes={game.findTimes} medianMs={s.median} />
+            <FindTimesChart
+              bars={bars}
+              medianMs={s.median}
+              note={boards.note}
+            />
           ) : null}
         </>
       )}
