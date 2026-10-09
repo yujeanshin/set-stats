@@ -1,10 +1,11 @@
 // Single game view (brief 7), shared by the full page (pages/Game.jsx) and
 // the dialog over the games list (GameDialog.jsx).
 import { Alert, Box, Link, Stack, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
 import { gameSite, gameUrl } from "../gameUrl.js";
+import BoardReplay from "./BoardReplay.jsx";
 import FindTimesChart from "./FindTimesChart.jsx";
 import Tile from "./Tile.jsx";
 import { clock, dateTime, secs } from "../format.js";
@@ -78,19 +79,40 @@ function timeBars(game, mine) {
 }
 
 /**
- * Heading, summary tiles and find times chart for one game.
+ * One bar per find of mine, for the full page with the replay: bar i is
+ * replay step i. Breaks stay in, greyed when the stats leave them out.
+ */
+const replayBars = (mine, dropBreaks) =>
+  mine.map((f, i) => ({
+    ms: f.elapsed_ms,
+    number: i + 1,
+    find: f,
+    isBreak: dropBreaks && f.break,
+  }));
+
+/**
+ * Heading, summary tiles and find times chart for one game, plus the board
+ * replay when `replay` is set (the full page, not the dialog).
  * header: shown above the heading. titleId: id for the heading.
  */
-export default function GameDetails({ id, header, titleId }) {
+export default function GameDetails({ id, header, titleId, replay = false }) {
   const [{ dropBreaks }] = useFilters();
   const { data: game, error } = useApi(`/games/${encodeURIComponent(id)}`, {
     dropBreaks,
   });
   const boards = useBoards(id, game);
+  const withReplay = replay && boards.mine.length > 0;
   const bars = useMemo(
-    () => (game ? timeBars(game, boards.mine) : []),
-    [game, boards],
+    () =>
+      !game
+        ? []
+        : withReplay
+          ? replayBars(boards.mine, dropBreaks)
+          : timeBars(game, boards.mine),
+    [game, boards, withReplay, dropBreaks],
   );
+  const [step, setStep] = useState(0);
+  const current = Math.min(step, Math.max(0, boards.mine.length - 1));
   const s = game?.stats;
   const v = (ms) => (game ? secs(ms) : "…");
   const tiles = [
@@ -156,6 +178,16 @@ export default function GameDetails({ id, header, titleId }) {
               bars={bars}
               medianMs={s.median}
               note={boards.note}
+              selected={withReplay ? current : null}
+              onSelect={withReplay ? setStep : null}
+            />
+          ) : null}
+          {withReplay ? (
+            <BoardReplay
+              finds={boards.mine}
+              step={current}
+              onStep={setStep}
+              breaksDropped={dropBreaks}
             />
           ) : null}
         </>

@@ -179,7 +179,11 @@ export default function FindTimesChart({
           max: cap == null ? undefined : cap / 1000,
           border: { display: false },
           grid: { drawTicks: false },
-          ticks: { padding: 6, callback: (v) => `${v}s` },
+          // The cap is not a round number; leave its tick unlabelled.
+          ticks: {
+            padding: 6,
+            callback: (v) => (Number.isInteger(v) ? `${v}s` : ""),
+          },
         },
       },
       plugins: {
