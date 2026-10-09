@@ -159,6 +159,13 @@ export default function GameDetails({ id, header, titleId, replay = false }) {
             Open on {gameSite(game).name}
           </Link>
         ) : null}
+        {game?.bad_timing ? (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Some sets in this game are under 100 ms apart, which no one can do,
+            so its times are off. The dashboard leaves it out of the stats while
+            Skip bad timing is on.
+          </Alert>
+        ) : null}
       </Stack>
       {error ? (
         <Alert severity="error">{error.message}</Alert>

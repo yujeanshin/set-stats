@@ -46,6 +46,30 @@ export function BestBadge() {
   );
 }
 
+/** On a game whose timestamps are off; the time stats skip it by default. */
+export function BadTimingTag() {
+  return (
+    <Box
+      component="span"
+      title="Two sets in this game are under 100 ms apart, which no one can do, so its times are off. Skip bad timing leaves it out of the stats."
+      sx={{
+        ml: 0.75,
+        px: 1,
+        py: "2px",
+        border: `1.5px solid ${colors.controlBorder}`,
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        color: "text.secondary",
+        whiteSpace: "nowrap",
+        cursor: "help",
+      }}
+    >
+      Bad timing
+    </Box>
+  );
+}
+
 export default function GamesList() {
   const [filters] = useFilters();
   const location = useLocation();
@@ -160,6 +184,7 @@ export default function GamesList() {
                   >
                     {done ? "Done" : "Unfinished"}
                     {g.game_id === best ? <BestBadge /> : null}
+                    {g.bad_timing ? <BadTimingTag /> : null}
                   </TableCell>
                 </TableRow>
               );

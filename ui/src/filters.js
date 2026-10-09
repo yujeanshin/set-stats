@@ -14,6 +14,7 @@ export function useFilters() {
     completedOnly: params.get("completedOnly") === "1",
     hintsOff: params.get("hintsOff") !== "0",
     dropBreaks: params.get("dropBreaks") === "1",
+    skipBadTiming: params.get("skipBadTiming") !== "0",
   };
   function setFilters(patch) {
     const next = { ...filters, ...patch };
@@ -24,6 +25,7 @@ export function useFilters() {
         setOrDelete(p, "completedOnly", next.completedOnly ? "1" : null);
         setOrDelete(p, "hintsOff", next.hintsOff ? null : "0");
         setOrDelete(p, "dropBreaks", next.dropBreaks ? "1" : null);
+        setOrDelete(p, "skipBadTiming", next.skipBadTiming ? null : "0");
         return p;
       },
       { replace: true },

@@ -10,7 +10,10 @@ import {
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
 
-/** Mode select, Completed only, Hints off only (brief 6.2), Drop breaks. */
+/**
+ * Mode select, Completed only, Hints off only (brief 6.2), Drop breaks,
+ * Skip bad timing (brief-v2).
+ */
 export default function FilterBar() {
   const [filters, setFilters] = useFilters();
   const modes = useApi("/modes");
@@ -80,6 +83,16 @@ export default function FilterBar() {
           }
           label="Drop breaks"
           title="Leave out any gap between sets longer than 100× that game's median gap, from both pace and game time"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={filters.skipBadTiming}
+              onChange={(e) => setFilters({ skipBadTiming: e.target.checked })}
+            />
+          }
+          label="Skip bad timing"
+          title="Leave out games with two sets under 100 ms apart, which no one can do: their timestamps are off. They stay in the games list and calendar."
         />
       </Stack>
     </Paper>

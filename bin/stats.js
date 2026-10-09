@@ -1,12 +1,21 @@
-// Usage: node bin/stats.js [--drop-breaks]
-//   --drop-breaks  leave out gaps longer than 100x their game's median gap
-//                  from pace and game time (see breakFlags in lib/metrics.js)
+// Usage: node bin/stats.js [--drop-breaks] [--keep-bad-timing]
+//   --drop-breaks      leave out gaps longer than 100x their game's median gap
+//                      from pace and game time (see breakFlags in lib/metrics.js)
+//   --keep-bad-timing  keep solo games with a gap under 100 ms, which are
+//                      skipped by default (see badTiming in lib/metrics.js)
 import { SITES } from "../lib/config.js";
 import db from "../lib/db.js";
 import { computeState } from "../lib/findTimes.js";
-import { BREAK_FACTOR, breakFlags } from "../lib/metrics.js";
+import {
+  BREAK_FACTOR,
+  INSTANT_GAP_MS,
+  badTiming,
+  breakFlags,
+} from "../lib/metrics.js";
 
 const dropBreaks = process.argv.includes("--drop-breaks");
+const keepBadTiming = process.argv.includes("--keep-bad-timing");
+let skipped = 0;
 
 // source -> my user id on that site
 const UIDS = Object.fromEntries(
@@ -33,6 +42,11 @@ for (const row of rows) {
     all.push({ user: event.user, ms: event.time - prev });
     prev = event.time; // resets on any accepted set
   }
+  const solo = Object.keys(game.users).length === 1;
+  if (solo && !keepBadTiming && badTiming(all.map((g) => g.ms))) {
+    skipped++;
+    continue;
+  }
   const isBreak = dropBreaks ? breakFlags(all.map((g) => g.ms)) : [];
   const gaps = all
     .filter((g, i) => !isBreak[i] && g.user === UID)
@@ -44,7 +58,7 @@ for (const row of rows) {
   games.push({
     startedAt: game.startedAt,
     mode,
-    variant: Object.keys(game.users).length === 1 ? "solo" : "multiplayer",
+    variant: solo ? "solo" : "multiplayer",
     finished,
     duration: finished
       ? game.endedAt - game.startedAt - (game.pauseTime ?? 0) - breakTime
@@ -82,6 +96,11 @@ since30.setDate(since30.getDate() - 30);
 if (dropBreaks)
   console.log(
     `breaks dropped: gaps over ${BREAK_FACTOR}x their game's median gap\n`,
+  );
+if (skipped)
+  console.log(
+    `skipped ${skipped} solo games with a gap under ${INSTANT_GAP_MS} ms ` +
+      `(bad timing; --keep-bad-timing keeps them)\n`,
   );
 for (const [key, list] of groups) {
   console.log(key);

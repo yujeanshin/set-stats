@@ -128,6 +128,7 @@ test("dropBreaks leaves a gap over 100x the median out of find times", () => {
     findTimes: all,
     findSeqs: events.map((e) => e.seq),
     breakMs: 0,
+    badTiming: false,
   });
   // a break ended by someone else still counts as break time
   const mixed = withBreak.map((e) => ({ ...e, user_id: "other" }));
@@ -135,6 +136,7 @@ test("dropBreaks leaves a gap over 100x the median out of find times", () => {
     findTimes: [],
     findSeqs: [],
     breakMs: BREAK_MS,
+    badTiming: false,
   });
 });
 
@@ -157,6 +159,15 @@ test("findSeqs match each find time to its finds row, with breaks dropped", () =
   );
   assert.deepEqual([...breakSeqs(game, withBreak)], [21]);
   assert.deepEqual([...breakSeqs(game, events)], []);
+});
+
+test("badTiming: any gap under 100 ms", () => {
+  assert.equal(gameTiming(game, events, USER).badTiming, false);
+  // the fourth set 50 ms after the third
+  const burst = events.map((e) =>
+    e.seq === 3 ? { ...e, time_ms: events[2].time_ms + 50 } : e,
+  );
+  assert.equal(gameTiming(game, burst, USER).badTiming, true);
 });
 
 test("findSeqs skip events the site ignored", () => {
