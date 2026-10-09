@@ -99,13 +99,14 @@ export function fixtureRaw() {
   };
 }
 
+/** Insert or update a sync_raw row; source defaults to forks. */
 export function insertRaw(db, raw) {
   db.prepare(
-    `INSERT INTO sync_raw (id, created_at, status, game_json, data_json)
-     VALUES (@id, @created_at, @status, @game_json, @data_json)
+    `INSERT INTO sync_raw (id, created_at, status, game_json, data_json, source)
+     VALUES (@id, @created_at, @status, @game_json, @data_json, @source)
      ON CONFLICT(id) DO UPDATE SET status = excluded.status,
        game_json = excluded.game_json, data_json = excluded.data_json`,
-  ).run(raw);
+  ).run({ source: "forks", ...raw });
 }
 
 /** A fresh in-memory database with the full schema and lookups. */
