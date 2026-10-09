@@ -1,8 +1,11 @@
 import { SITES } from "../lib/config.js";
-
-const UID = SITES.forks.uid;
 import db from "../lib/db.js";
-import { computeState } from "../vendor/game.js";
+import { computeState } from "../lib/findTimes.js";
+
+// source -> my user id on that site
+const UIDS = Object.fromEntries(
+  Object.values(SITES).map((s) => [s.source, s.uid]),
+);
 
 const rows = db.prepare("SELECT * FROM sync_raw ORDER BY created_at").all();
 
@@ -13,7 +16,8 @@ for (const row of rows) {
   if (!data || !game.startedAt || game.enableHint) continue;
 
   const mode = game.mode || "normal";
-  const { scores, history } = computeState(data, mode);
+  const UID = UIDS[row.source];
+  const { scores, history } = computeState(row.source, data, mode);
 
   // pace
   const gaps = [];

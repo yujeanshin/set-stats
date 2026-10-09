@@ -63,3 +63,36 @@ test("multiplayer: only my sets count, but anyone's set resets the clock", () =>
 test("a game with no events has no find times", () => {
   assert.deepEqual(findTimes(game, [], USER), []);
 });
+
+test("original-site games use the original's computeState, including setjr", () => {
+  const deck = [];
+  for (let i = 0; i < 81; i++)
+    deck.push([27, 9, 3, 1].map((d) => Math.floor(i / d) % 3).join(""));
+  const swfGame = {
+    source: "swf",
+    mode: "setjr",
+    started_at: 1000,
+    deck: JSON.stringify(deck),
+  };
+  const ev = (seq, time, user, c1, c2, c3) => ({
+    push_key: `-k${seq}`,
+    time_ms: time,
+    user_id: user,
+    c1,
+    c2,
+    c3,
+  });
+  const swfEvents = [
+    ev(0, 3000, "me", "0000", "0101", "0202"),
+    ev(1, 4000, "other", "1000", "1101", "1202"),
+    ev(2, 4500, "me", "0000", "1000", "2000"), // reuses taken cards: ignored
+    ev(3, 7000, "me", "2000", "2101", "2202"),
+  ];
+  assert.deepEqual(findTimes(swfGame, swfEvents, "me"), [2000, 3000]);
+  assert.equal(gameDataFromRows(swfGame, swfEvents).deck.length, 81);
+  // the fork's code doesn't know this mode
+  assert.throws(
+    () => findTimes({ ...swfGame, source: "forks" }, swfEvents, "me"),
+    /invalid gameMode: setjr/,
+  );
+});
