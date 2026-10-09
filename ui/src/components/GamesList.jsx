@@ -48,7 +48,8 @@ export function BestBadge() {
 
 export default function GamesList() {
   const [filters] = useFilters();
-  const { search } = useLocation();
+  const location = useLocation();
+  const { search } = location;
   const [state, setState] = useState({ games: [], total: null, best: null });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -129,6 +130,8 @@ export default function GamesList() {
                     <Link
                       component={RouterLink}
                       to={{ pathname: `/games/${g.game_id}`, search }}
+                      // Opens as a dialog over this list (App.jsx).
+                      state={{ backgroundLocation: location }}
                       underline="hover"
                       sx={{
                         display: "inline-flex",
