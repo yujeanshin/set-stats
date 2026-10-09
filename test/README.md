@@ -92,6 +92,8 @@ checks `ui/src/cardFace.js`, the mapping the card component draws from (see [bri
 
 replays every normal game in `data/games.db` with both `lib/replay.js` and the `computeState` of the game's site (`vendor/game.js` or `vendor/setwithfriends/util.js`), and checks they agree on the valid events, the cards left at the end, and the final board size. this covers thousands of real games instead of one, and catches the replay drifting from the site after `vendor/game.js` is updated.
 
+it checks every game before failing, then lists each mismatched game with the first difference (or the error the replay threw). it prints how many games it checked, how many it skipped because they never started (`STARTED` in `lib/derive.js`), and how many mismatched.
+
 it needs `npm run rebuild` to have loaded `games` and `events` first. without `data/games.db` it is skipped.
 
 ## `fixture.js`
