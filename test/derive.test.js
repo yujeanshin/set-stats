@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DERIVE_VERSION, rebuildDerived } from "../lib/derive.js";
+import { DERIVE_VERSION, deriveNew, rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
-import { getMeta } from "../lib/schema.js";
+import { getMeta, setMeta } from "../lib/schema.js";
 import { EXPECTED, GAME, OPENING_BOARD, USER, count, fixtureRaw, insertRaw, memoryDb } from "./fixture.js";
 
 function nonNormal() {
@@ -27,7 +27,7 @@ const setsAt = db.prepare("SELECT * FROM board_sets WHERE game_id = ? AND seq = 
 
 test("only normal-mode games are derived", () => {
   const boardSets = EXPECTED.reduce((n, e) => n + e.nSets, 0);
-  assert.deepEqual(totals, { games: 1, finds: 25, boardSets });
+  assert.deepEqual(totals, { games: 1, finds: 25, boardSets, full: true });
   assert.equal(count(db, "finds WHERE game_id = 'shuffle-game'"), 0);
   assert.equal(count(db, "events WHERE game_id = 'shuffle-game'"), 25);
 });
@@ -98,6 +98,50 @@ test("rebuilding again gives the same rows", () => {
   rebuildDerived(db);
   assert.equal(count(db, "finds"), 25);
   assert.deepEqual(db.prepare("SELECT * FROM board_sets ORDER BY game_id, seq, set_id").all(), before);
+});
+
+function copyOfFixture(id) {
+  return { ...fixtureRaw(), id };
+}
+
+test("deriveNew derives only games without finds", () => {
+  const { db } = builtDb();
+  const before = db.prepare("SELECT * FROM board_sets ORDER BY game_id, seq, set_id").all();
+
+  insertRaw(db, copyOfFixture("new-game"));
+  loadAll(db);
+  const totals = deriveNew(db);
+  assert.equal(totals.full, false);
+  assert.equal(totals.games, 1);
+  assert.equal(totals.finds, 25);
+  assert.equal(count(db, "finds WHERE game_id = 'new-game'"), 25);
+  assert.deepEqual(db.prepare("SELECT * FROM board_sets WHERE game_id <> 'new-game' ORDER BY game_id, seq, set_id").all(), before);
+
+  assert.deepEqual(deriveNew(db), { games: 0, finds: 0, boardSets: 0, full: false });
+});
+
+test("deriveNew re-derives a re-synced game after the loader cleared it", () => {
+  const { db } = builtDb();
+  const updated = fixtureRaw();
+  const data = JSON.parse(updated.data_json);
+  data.events["-P-F0000"].time -= 1000;
+  updated.data_json = JSON.stringify(data);
+  insertRaw(db, updated);
+  loadAll(db);
+  assert.equal(count(db, "finds"), 0);
+
+  const totals = deriveNew(db);
+  assert.equal(totals.games, 1);
+  assert.equal(db.prepare("SELECT elapsed_ms FROM finds WHERE game_id = ? AND seq = 0").get(GAME.game_id).elapsed_ms, 1625);
+});
+
+test("deriveNew falls back to a full rebuild when derive_version doesn't match", () => {
+  const { db } = builtDb();
+  setMeta(db, "derive_version", DERIVE_VERSION - 1);
+  const totals = deriveNew(db);
+  assert.equal(totals.full, true);
+  assert.equal(totals.games, 1);
+  assert.equal(getMeta(db, "derive_version"), String(DERIVE_VERSION));
 });
 
 test("a replay mismatch fails the rebuild and leaves derive_version unset", () => {
