@@ -2,7 +2,6 @@ import { UID } from "../lib/config.js";
 import db from "../lib/db.js";
 import { computeState } from "../vendor/game.js";
 
-const DAY = 24 * 60 * 60 * 1000;
 const rows = db.prepare("SELECT * FROM sync_raw ORDER BY created_at").all();
 
 const games = [];
@@ -26,15 +25,18 @@ for (const row of rows) {
   // per-game summary
   const finished = game.status === "done";
   games.push({
-    createdAt: row.created_at,
+    startedAt: game.startedAt,
     mode,
     variant: Object.keys(game.users).length === 1 ? "solo" : "multiplayer",
     finished,
-    duration: finished ? game.endedAt - game.startedAt : null,
+    duration: finished
+      ? game.endedAt - game.startedAt - (game.pauseTime ?? 0)
+      : null,
     sets: scores[UID] ?? 0,
     gaps,
   });
 }
+games.sort((a, b) => a.startedAt - b.startedAt);
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const secs = (xs) => (xs.length ? (mean(xs) / 1000).toFixed(1) + "s" : "-");
@@ -56,12 +58,16 @@ for (const g of games) {
   groups.get(key).push(g);
 }
 
+const since30 = new Date();
+since30.setHours(0, 0, 0, 0); // starts at local midnight
+since30.setDate(since30.getDate() - 30);
+
 for (const [key, list] of groups) {
   console.log(key);
   line("all time", list);
   line(
     "last 30 days",
-    list.filter((g) => g.createdAt > Date.now() - 30 * DAY),
+    list.filter((g) => g.startedAt > since30.getTime()),
   );
   line("last 10 finished", list.filter((g) => g.finished).slice(-10));
 }
