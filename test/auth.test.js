@@ -33,6 +33,11 @@ test("jwtExpiry reads exp in ms", () => {
   assert.equal(jwtExpiry(jwt(1_700_000_000_000)), 1_700_000_000_000);
 });
 
+test("jwtExpiry explains a value that isn't a JWT", () => {
+  for (const bad of ["AMf-not-a-jwt", "eyJabc", "a.b.c", ""])
+    assert.throws(() => jwtExpiry(bad), /doesn't look like an access token/);
+});
+
 test("an accessToken is used directly until it expires, then throws", async () => {
   let clock = 1_000_000;
   const token = jwt(clock + 3_600_000);
