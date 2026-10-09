@@ -205,3 +205,28 @@ test("a replay mismatch fails the rebuild and leaves derive_version unset", () =
   assert.throws(() => rebuildDerived(db), /abandoned-tired-property/);
   assert.equal(getMeta(db, "derive_version"), null);
 });
+
+test("with onError, a replay mismatch is reported and the other games still derive", () => {
+  const { db } = builtDb();
+  insertRaw(db, copyOfFixture("good-game"));
+  loadAll(db);
+  db.prepare("UPDATE events SET c3 = '2222' WHERE game_id = ? AND seq = 3").run(
+    GAME.game_id,
+  );
+  const failed = [];
+  const totals = rebuildDerived(db, {
+    onError: (game, e) => failed.push([game.game_id, e.message]),
+  });
+  assert.equal(failed.length, 1);
+  assert.equal(failed[0][0], GAME.game_id);
+  assert.match(failed[0][1], /replay abandoned-tired-property: seq 3/);
+  assert.equal(totals.games, 1);
+  assert.equal(count(db, "finds WHERE game_id = 'good-game'"), 25);
+  assert.equal(count(db, "finds WHERE game_id = ?", GAME.game_id), 0);
+  assert.equal(getMeta(db, "derive_version"), String(DERIVE_VERSION));
+
+  // rebuild:new tries the failed game again
+  const again = [];
+  deriveNew(db, { onError: (game) => again.push(game.game_id) });
+  assert.deepEqual(again, [GAME.game_id]);
+});
