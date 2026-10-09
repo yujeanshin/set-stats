@@ -103,7 +103,7 @@ test("original-site games use the original's computeState, including setjr", () 
 });
 
 // The fixture with a break: 400 s more before seq 21, so that gap is
-// 440569 ms. The gaps' median stays 3671 ms, and 100x that is 367100 ms.
+// 440569 ms. The gaps' median stays 3671 ms, and 50x that is 183550 ms.
 const BREAK_MS = 440569;
 const withBreak = events.map((e) =>
   e.seq >= 21 ? { ...e, time_ms: e.time_ms + 400_000 } : e,
@@ -115,7 +115,7 @@ test("the fixture has no break: its longest gap is 11x the median", () => {
   assert.deepEqual(timing.findTimes, findTimes(game, events, USER));
 });
 
-test("dropBreaks leaves a gap over 100x the median out of find times", () => {
+test("dropBreaks leaves a gap over 50x the median out of find times", () => {
   const all = findTimes(game, withBreak, USER);
   assert.equal(all[21], BREAK_MS);
   const timing = gameTiming(game, withBreak, USER, { dropBreaks: true });

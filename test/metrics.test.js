@@ -5,6 +5,7 @@ import {
   calendarRange,
   calendarThresholds,
   aoX,
+  BREAK_FACTOR,
   breakFlags,
   durationMs,
   findStats,
@@ -232,8 +233,9 @@ test("calendar thresholds are quartiles of the busy days", () => {
   assert.deepEqual(calendarThresholds([5]), [5, 5, 5]);
 });
 
-test("breakFlags: a gap over 100x the game's median gap is a break", () => {
-  assert.deepEqual(breakFlags([1000, 2000, 3000, 300000, 300001]), [
+test("breakFlags: a gap over 50x the game's median gap is a break", () => {
+  assert.equal(BREAK_FACTOR, 50);
+  assert.deepEqual(breakFlags([1000, 2000, 3000, 150000, 150001]), [
     false,
     false,
     false,
@@ -248,7 +250,7 @@ test("breakFlags: a gap over 100x the game's median gap is a break", () => {
 test("breakFlags: gaps under 100 ms don't count toward the median", () => {
   // A burst of near-instant sets (a real swf game): the median of all gaps
   // is 2 ms, which would make every ordinary gap a break. Without the
-  // burst the median is 10601.5 ms, so only gaps over about 18 min are breaks.
+  // burst the median is 10601.5 ms, so only gaps over about 9 min are breaks.
   const gaps = [9011, 2, 83772, 3, 1, 1, 8963, 2, 2, 1, 1, 2, 2, 12192];
   assert.deepEqual(breakFlags(gaps), Array(gaps.length).fill(false));
   assert.deepEqual(

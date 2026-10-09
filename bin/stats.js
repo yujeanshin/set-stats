@@ -1,5 +1,5 @@
 // Usage: node bin/stats.js [--drop-breaks] [--keep-bad-timing]
-//   --drop-breaks      leave out gaps longer than 100x their game's median gap
+//   --drop-breaks      leave out gaps longer than 50x their game's median gap
 //                      from pace and game time (see breakFlags in lib/metrics.js)
 //   --keep-bad-timing  keep solo games with a gap under 100 ms, which are
 //                      skipped by default (see badTiming in lib/metrics.js)

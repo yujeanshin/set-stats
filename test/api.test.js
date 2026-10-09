@@ -21,7 +21,7 @@ insertRaw(db, raw);
 
 // Same seed and first 10 events, a day later, hints on, still in progress,
 // with a 10-minute break before the sixth set: that gap is 602879 ms, over
-// 100x the game's median gap (3990.5 ms). The fixture game has no break.
+// 50x the game's median gap (3990.5 ms). The fixture game has no break.
 const SECOND_BREAK_MS = 2879 + 600_000;
 const game = JSON.parse(raw.game_json);
 const data = JSON.parse(raw.data_json);
@@ -118,7 +118,7 @@ test("summary: filters default to hints off, mode to most played", async () => {
   assert.equal(recent.windows.last30Days.avgTimeMs, null);
 });
 
-test("summary and game: dropBreaks removes only gaps over 100x the median", async () => {
+test("summary and game: dropBreaks removes only gaps over 50x the median", async () => {
   // The fixture game's longest gap is 11x its median: not a break.
   const plain = (await get("/summary")).body;
   const { body } = await get("/summary?dropBreaks=1");

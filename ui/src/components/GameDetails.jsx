@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useApi } from "../api.js";
+import { BREAK_FACTOR } from "../definitions.js";
 import { useFilters } from "../filters.js";
 import { gameSite, gameUrl } from "../gameUrl.js";
 import BoardReplay from "./BoardReplay.jsx";
@@ -46,7 +47,7 @@ function BreaksSwitch({ game, dropBreaks, onChange }) {
     ? null
     : game.break_ms
       ? `${clock(game.break_ms)} of breaks left out of the stats; break bars are grey and cut off.`
-      : "No breaks in this game: no gap is over 50× its median gap.";
+      : `No breaks in this game: no gap is over ${BREAK_FACTOR}× its median gap.`;
   return (
     <Box
       sx={{
@@ -64,7 +65,7 @@ function BreaksSwitch({ game, dropBreaks, onChange }) {
           />
         }
         label="Drop breaks"
-        title="Leave out any gap between sets longer than 100× this game's median gap, from the stats and the chart's scale"
+        title={`Leave out any gap between sets longer than ${BREAK_FACTOR}× this game's median gap, from the stats and the chart's scale`}
         sx={{ minHeight: 44, ml: 0 }}
       />
       {note ? (

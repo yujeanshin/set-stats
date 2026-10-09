@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useApi } from "../api.js";
+import { BREAK_FACTOR, INSTANT_GAP_MS } from "../definitions.js";
 import { useFilters } from "../filters.js";
 
 /**
@@ -82,7 +83,7 @@ export default function FilterBar() {
             />
           }
           label="Drop breaks"
-          title="Leave out any gap between sets longer than 100× that game's median gap, from both pace and game time"
+          title={`Leave out any gap between sets longer than ${BREAK_FACTOR}× that game's median gap, from both pace and game time`}
         />
         <FormControlLabel
           control={
@@ -92,7 +93,7 @@ export default function FilterBar() {
             />
           }
           label="Skip bad timing"
-          title="Leave out games with two sets under 100 ms apart, which no one can do: their timestamps are off. They stay in the games list and calendar."
+          title={`Leave out games with two sets under ${INSTANT_GAP_MS} ms apart, which no one can do: their timestamps are off. They stay in the games list and calendar.`}
         />
       </Stack>
     </Paper>
