@@ -121,6 +121,8 @@ avoid syncing while you have a game in progress. it will be saved as unfinished,
 
 only `sync` and `check` contact the site. everything else works offline from your local copy.
 
+if you change the code, `npm run format` formats it with Prettier and `npm run lint` checks it with ESLint. GitHub Actions runs the format check, lint and tests on every pull request and every push to `main` (see `.github/workflows/ci.yml`).
+
 ## where is my game data?
 
 your games are stored in `data/games.db`, an SQLite file. it is not committed to git. to back it up, copy the file (along with `games.db-wal` and `games.db-shm` if they exist), ideally while no command is running. if you delete it, the next sync downloads everything again.
