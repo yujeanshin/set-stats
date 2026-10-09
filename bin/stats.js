@@ -1,6 +1,6 @@
-import { UID } from "./config.js";
-import db from "./db.js";
-import { computeState } from "./vendor/game.js";
+import { UID } from "../lib/config.js";
+import db from "../lib/db.js";
+import { computeState } from "../vendor/game.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const rows = db.prepare("SELECT * FROM sync_raw ORDER BY created_at").all();

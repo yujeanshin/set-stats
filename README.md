@@ -51,48 +51,50 @@ open your profile page on setwithforks.com. your user ID is the last part of the
 ```
 https://setwithforks.com/profile/<your-user-id>
 ```
-open `config.js` and replace the value of `UID` with your user ID. leave the `API_KEY` and `DB_URL` as they are. (i haven't tried fetching from the original setwithfriends.com database. at minimum, that would require that site's config values, token, and `game.js`.)
+open `lib/config.js` and replace the value of `UID` with your user ID. leave the `API_KEY` and `DB_URL` as they are. (i haven't tried fetching from the original setwithfriends.com database. at minimum, that would require that site's config values, token, and `game.js`.)
 ### 3. add sign-in token
 the site's database only answers requests that carry a sign-in token, so the tool borrows the one your browser already has. this works whether you log in to an account or play as a guest.
 1. go to setwithforks.com in the browser you usually play in
 2. open dev tools
 3. (in Chrome) go to Application > IndexedDB > `firebaseLocalStorageDb` > `firebaseLocalStorage`.
 4. copy the value at `value.stsTokenManager.refreshToken`
-5. in the project folder, create a file named `token.json`:
+5. in the project's `data` folder (create it if needed), create a file named `token.json`:
 ```json
 { "refreshToken": "paste-your-token-here" }
 ```
-treat this file like a password; anyone with this token can act as you on the site. it's included in `.gitignore` so git will not commit it. don't share it or paste it anywhere else.
+treat this file like a password; anyone with this token can act as you on the site. the `data` folder is included in `.gitignore` so git will not commit it. don't share it or paste it anywhere else.
 ### 4. check it works
 run 
 ```bash
-node check.js
+npm run check
 ```
 you should see `200` followed by your display name. if not, see **troubleshooting** below.
 
 ## usage
 run
 ```bash
-node sync.js    # download any games you don't have yet
-node stats.js   # print your stats
+npm run sync    # download any games you don't have yet
+npm run stats   # print your stats
 ```
-the first `sync.js` run will download all of your game history and may take a few minutes. subsequent syncs only fetch games played since the last sync. run from the project folder when you want up-to-date stats.
+the first sync will download all of your game history and may take a few minutes. subsequent syncs only fetch games played since the last sync. run them whenever you want up-to-date stats.
 
 avoid syncing while you have a game in progress. it will be saved as unfinished, and unfinished games are only rechecked and updated in the local database if you sync again within a day of when the game was created.
 
 ## where is my game data?
-your games are stored in `games.db`, an SQLite file in the project folder. it is not committed to git. to back it up, copy the file. if you delete it, the next sync downloads everything again.
+your games are stored in `data/games.db`, an SQLite file. it is not committed to git. to back it up, copy the file. if you delete it, the next sync downloads everything again.
+
+the downloaded JSON for each game is kept as-is in the `sync_raw` table. the `cards` and `sets` lookup tables are filled automatically whenever the database is opened.
 
 to inspect directly with SQL queries, try commands like
 ```bash
-sqlite3 games.db "SELECT status, COUNT(*) FROM games GROUP BY status"
+sqlite3 data/games.db "SELECT status, COUNT(*) FROM sync_raw GROUP BY status"
 ```
 
 ## troubleshooting
 | what you see | possible cause |
 | --- | --- |
 | error starting with `auth:` that mentions an invalid or expired token | the token was copied incompletely, or with extra quotes or spaces. copy it again. this can also happen after signing out of the site. |
-| `check.js` prints `200 null` | the `UID` in `config.js` does not match any user. recheck your profile URL. |
+| `npm run check` prints `200 null` | the `UID` in `lib/config.js` does not match any user. recheck your profile URL. |
 | `401` or `Permission denied` | the token is not being accepted. repeat setup step 3. |
 | stats look wrong for a new game mode | the copy of the site's game logic is out of date. see **keeping up with the site** below. |
 

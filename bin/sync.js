@@ -1,7 +1,7 @@
-import { getIdToken } from "./auth.js";
-import { DB_URL, UID } from "./config.js";
-import db from "./db.js";
-import { setMeta } from "./lib/schema.js";
+import { getIdToken } from "../lib/auth.js";
+import { DB_URL, UID } from "../lib/config.js";
+import db from "../lib/db.js";
+import { setMeta } from "../lib/schema.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const BATCH = 5;

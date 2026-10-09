@@ -2,9 +2,11 @@
   "name": "set-stats",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "node bin/check.js",
+    "sync": "node bin/sync.js",
+    "stats": "node bin/stats.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
