@@ -63,7 +63,17 @@ const known = new Map(
     .all(SITE.source)
     .map((r) => [r.id, r.status]),
 );
-const all = gamesToFetch(SITE, userGames, known, Date.now());
+const skipped = new Set(
+  db
+    .prepare("SELECT id FROM sync_skipped WHERE source = ?")
+    .pluck()
+    .all(SITE.source),
+);
+const skip = db.prepare(
+  `INSERT OR IGNORE INTO sync_skipped (id, source, reason, skipped_at)
+   VALUES (?, ?, ?, ?)`,
+);
+const all = gamesToFetch(SITE, userGames, known, Date.now(), skipped);
 const todo = limit == null ? all : all.slice(0, limit);
 
 console.log(
@@ -73,6 +83,7 @@ console.log(
 
 let restored = 0;
 const missing = [];
+const gone = [];
 const BATCH = SITE.concurrency;
 for (let i = 0; i < todo.length; i += BATCH) {
   await Promise.all(
@@ -80,7 +91,10 @@ for (let i = 0; i < todo.length; i += BATCH) {
       const r = await fetchGame(SITE, id, createdAt, { read, call });
       if (r.restored) restored++;
       if (r.row) upsert.run(r.row);
-      else if (r.restored != null) missing.push(id);
+      else if (r.restored === false) {
+        skip.run(id, SITE.source, "no archived data", Date.now());
+        gone.push(id);
+      } else if (r.restored != null) missing.push(id);
     }),
   );
   console.log(`${Math.min(i + BATCH, todo.length)}/${todo.length}`);
@@ -88,10 +102,19 @@ for (let i = 0; i < todo.length; i += BATCH) {
 
 if (SITE.functionsUrl) {
   console.log(`restored ${restored} archived games`);
+  if (gone.length)
+    console.log(
+      `${gone.length} games have no data on the site (no archived copy). ` +
+        `they were left out and recorded in sync_skipped, so sync won't ` +
+        `ask for them again:\n  ` +
+        gone.join("\n  "),
+    );
+  if (skipped.size)
+    console.log(`${skipped.size} games skipped as recorded in sync_skipped`);
   if (missing.length)
     console.log(
-      `${missing.length} games had no data even after asking the site to ` +
-        `restore them. they were not stored; the next sync tries again:\n  ` +
+      `${missing.length} games were restored by the site but still had no ` +
+        `data. they were not stored; the next sync tries again:\n  ` +
         missing.join("\n  "),
     );
 }

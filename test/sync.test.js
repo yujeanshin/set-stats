@@ -26,6 +26,17 @@ test("gamesToFetch: new games, plus unfinished ones under a day old, newest firs
   assert.equal(gamesToFetch(SITES.forks, userGames, known, NOW).length, 3);
 });
 
+test("gamesToFetch never returns a skipped game", () => {
+  const userGames = { gone: 1 * DAY, fine: 2 * DAY };
+  const skipped = new Set(["swf:gone"]);
+  assert.deepEqual(
+    gamesToFetch(SITES.swf, userGames, new Map(), NOW, skipped).map(
+      ([id]) => id,
+    ),
+    ["swf:fine"],
+  );
+});
+
 /** A fake site: `db` maps paths to values; fetchStaleGame moves `archive` into it. */
 function fakeSite(db, archive = {}) {
   const log = [];

@@ -124,7 +124,9 @@ the first sync will download all of your game history and may take a few minutes
 
 ### syncing from setwithfriends
 
-setwithfriends moves a game's moves out of its database two weeks after the game, so for most games there is nothing to read at first. sync asks the site to bring each started game back (the same thing the site's own pages do when you open an old game) and then reads it. a game that still has no data afterwards is not saved, and the next sync tries it again; sync lists these at the end.
+setwithfriends moves a game's moves out of its database two weeks after the game, so for most games there is nothing to read at first. sync asks the site to bring each started game back (the same thing the site's own pages do when you open an old game) and then reads it. if the site says it has no copy at all (opening the game on the site then shows "not found"), the game is left out and recorded in the `sync_skipped` table, and sync never asks for it again. if the site says it restored a game but there is still no data, the game is not saved and the next sync tries again. sync lists both kinds at the end.
+
+to have sync try the skipped games again, run `sqlite3 data/games.db "DELETE FROM sync_skipped"`.
 
 to go easy on the site, sync fetches 2 games at a time from setwithfriends with at most 2 requests in flight, so a first sync of thousands of games takes a long time. it saves each game as soon as it arrives, so you can stop it with Ctrl+C and run it again later.
 
@@ -203,7 +205,8 @@ sqlite3 data/games.db "SELECT mode, status, COUNT(*) FROM games GROUP BY mode, s
 | `rebuild` prints `failed (...): replay <game id>: ...`                | the replay disagrees with the site for that game. it is skipped and the rest still build. run `npm test` and check whether `vendor/` is out of date. |
 | `auth:` error mentioning a referer                                    | setwithfriends refuses to renew tokens from outside its website. use an `accessToken` instead (setup step 3).                                        |
 | `the accessToken in ... expired`                                      | access tokens last about an hour. paste a fresh one from the browser and run the command again.                                                      |
-| sync says some games had no data even after restoring                 | the site had no archived copy of them. they are retried on every sync; there is nothing else to do.                                                  |
+| sync says some games have no data on the site                         | the site has no archived copy of them (the site shows "not found" for them too). they are left out and not tried again; nothing to do.               |
+| sync says some games were restored but still had no data              | probably temporary. they are tried again on the next sync.                                                                                           |
 
 ## keeping up with the site
 

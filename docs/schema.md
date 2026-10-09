@@ -1,15 +1,15 @@
 # database schema
 
-everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 2) whenever any command opens the database.
+everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 3) whenever any command opens the database.
 
 tables fall into four groups:
 
-| group          | tables                | written by                      | can be rebuilt?              |
-| -------------- | --------------------- | ------------------------------- | ---------------------------- |
-| sync cache     | `sync_raw`            | `npm run sync`                  | only by re-downloading       |
-| raw            | `games`, `events`     | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
-| static lookups | `cards`, `sets`       | automatically on open           | yes, generated from scratch  |
-| derived        | `finds`, `board_sets` | `npm run rebuild` (derive step) | yes, from `games` + `events` |
+| group          | tables                     | written by                      | can be rebuilt?              |
+| -------------- | -------------------------- | ------------------------------- | ---------------------------- |
+| sync cache     | `sync_raw`, `sync_skipped` | `npm run sync`                  | only by re-downloading       |
+| raw            | `games`, `events`          | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
+| static lookups | `cards`, `sets`            | automatically on open           | yes, generated from scratch  |
+| derived        | `finds`, `board_sets`      | `npm run rebuild` (derive step) | yes, from `games` + `events` |
 
 plus `meta` (key/value settings) and the `my_finds` view.
 
@@ -40,6 +40,17 @@ the exact JSON downloaded from the site, one row per game. this is the source of
 | `game_json`  | TEXT    | `games/{id}` from Firebase                                        |
 | `data_json`  | TEXT    | `gameData/{id}` from Firebase (seed or deck, and events)          |
 | `source`     | TEXT    | `forks` (setwithforks) or `swf` (setwithfriends)                  |
+
+### `sync_skipped`
+
+games sync has given up on, so it never fetches them again. today that means setwithfriends games for which the site has no archived data. they are not in `sync_raw` or any table below. delete rows here to have sync try those games again.
+
+| column       | type    | notes                           |
+| ------------ | ------- | ------------------------------- |
+| `id`         | TEXT PK | game id, with the site's prefix |
+| `source`     | TEXT    | `forks` or `swf`                |
+| `reason`     | TEXT    | why, e.g. `no archived data`    |
+| `skipped_at` | INTEGER | when sync gave up on it (ms)    |
 
 ## raw tables
 
@@ -152,4 +163,4 @@ primary key `(game_id, seq, set_id)`.
 
 ## migrations
 
-schema v2 added `sync_raw.source`, `games.source` and `games.deck`. an older database gets them on its next open, with `source = 'forks'` for every existing row, so nothing is downloaded again.
+schema v2 added `sync_raw.source`, `games.source` and `games.deck`. an older database gets them on its next open, with `source = 'forks'` for every existing row, so nothing is downloaded again. schema v3 added the `sync_skipped` table.

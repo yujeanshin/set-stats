@@ -68,6 +68,12 @@ test("a v1 database migrates in place, old rows default to forks", () => {
     db.prepare("SELECT game_id, seed, source, deck FROM games").all(),
     [{ game_id: GAME.game_id, seed: GAME.seed, source: "forks", deck: null }],
   );
+  assert.deepEqual(columns(db, "sync_skipped"), [
+    "id",
+    "source",
+    "reason",
+    "skipped_at",
+  ]);
   // the old my_user_id still selects my forks finds
   assert.equal(getMeta(db, "my_user_id"), USER);
   assert.equal(count(db, "my_finds"), 1);
