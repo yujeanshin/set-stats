@@ -1,5 +1,6 @@
-import { Alert, Box } from "@mui/material";
-import { clock, secs } from "../format.js";
+import { Alert, Box, Link } from "@mui/material";
+import { Link as RouterLink, useLocation } from "react-router-dom";
+import { clock, dateOnly, dateTime, secs } from "../format.js";
 import Tile from "./Tile.jsx";
 
 const LABELS = [
@@ -12,6 +13,26 @@ const LABELS = [
 /** "± 0.4" using fmt, or "" when there is no standard deviation (n < 2). */
 const plusMinus = (sd, fmt) => (sd == null ? "" : `± ${fmt(sd)}`);
 const shortClock = (ms) => clock(ms, { tenths: false });
+
+/**
+ * The fastest game's date, linking to it. Like the games list, it opens as
+ * a dialog over the dashboard (App.jsx).
+ */
+function FastestLink({ game }) {
+  const location = useLocation();
+  return (
+    <Link
+      component={RouterLink}
+      to={{ pathname: `/games/${game.game_id}`, search: location.search }}
+      state={{ backgroundLocation: location }}
+      underline="hover"
+      title={`Open this game, played ${dateTime(game.started_at)}`}
+      sx={{ fontFamily: "fontFamily", fontWeight: 600 }}
+    >
+      {dateOnly(game.started_at)}
+    </Link>
+  );
+}
 
 /** The four headline tiles (brief 6.3). `summary` is useApi("/summary"). */
 export default function HeadlineTiles({ summary }) {
@@ -26,7 +47,15 @@ export default function HeadlineTiles({ summary }) {
           suffix: `/ ${h.started}`,
           suffixSize: 18,
         },
-        { label: LABELS[1], value: clock(h.fastestMs) },
+        {
+          label: LABELS[1],
+          value: clock(h.fastestMs),
+          suffix: h.fastestGame ? (
+            <>
+              on <FastestLink game={h.fastestGame} />
+            </>
+          ) : null,
+        },
         {
           label: LABELS[2],
           value: secs(h.pace.avg),

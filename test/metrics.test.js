@@ -132,6 +132,14 @@ test("headline tiles: stdev across per-game paces, last 5 finished for time", ()
   assert.equal(h.started, 5);
   assert.equal(h.finished, 4);
   assert.equal(h.fastestMs, 180_000);
+  assert.deepEqual(h.fastestGame, {
+    game_id: "e",
+    started_at: T0 + 3 * DAY + 3_600_000,
+  });
+  // a tie goes to the older game; no finished games, no fastest game
+  const tie = headline([...GAMES, game("f", T0 + 4 * DAY, 180_000, [1])]);
+  assert.equal(tie.fastestGame.game_id, "e");
+  assert.equal(headline([GAMES[2]]).fastestGame, null);
   assert.equal(h.pace.n, 4); // e has no finds
   assert.equal(h.pace.avg, 11_000);
   near(h.pace.sd, 1000 * Math.sqrt(26 / 3));
