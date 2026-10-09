@@ -1,6 +1,14 @@
 // Single game view (brief 7), shared by the full page (pages/Game.jsx) and
 // the dialog over the games list (GameDialog.jsx).
-import { Alert, Box, Link, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  FormControlLabel,
+  Link,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
 import { useMemo, useState } from "react";
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
@@ -26,6 +34,45 @@ function Subtitle({ game }) {
         {game.game_id}
       </Box>
     </Typography>
+  );
+}
+
+/**
+ * Drop breaks for this game page: the same URL filter as the dashboard's
+ * checkbox, so the choice carries back to the list. Says what it removed.
+ */
+function BreaksSwitch({ game, dropBreaks, onChange }) {
+  const note = !dropBreaks
+    ? null
+    : game.break_ms
+      ? `${clock(game.break_ms)} of breaks left out of the stats; break bars are grey and cut off.`
+      : "No breaks in this game: no gap is over 100× its median gap.";
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 1.5,
+      }}
+    >
+      <FormControlLabel
+        control={
+          <Switch
+            checked={dropBreaks}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+        }
+        label="Drop breaks"
+        title="Leave out any gap between sets longer than 100× this game's median gap, from the stats and the chart's scale"
+        sx={{ minHeight: 44, ml: 0 }}
+      />
+      {note ? (
+        <Typography variant="caption" component="span">
+          {note}
+        </Typography>
+      ) : null}
+    </Box>
   );
 }
 
@@ -96,7 +143,7 @@ const replayBars = (mine, dropBreaks) =>
  * header: shown above the heading. titleId: id for the heading.
  */
 export default function GameDetails({ id, header, titleId, replay = false }) {
-  const [{ dropBreaks }] = useFilters();
+  const [{ dropBreaks }, setFilters] = useFilters();
   const { data: game, error } = useApi(`/games/${encodeURIComponent(id)}`, {
     dropBreaks,
   });
@@ -167,6 +214,13 @@ export default function GameDetails({ id, header, titleId, replay = false }) {
           </Alert>
         ) : null}
       </Stack>
+      {game && replay ? (
+        <BreaksSwitch
+          game={game}
+          dropBreaks={dropBreaks}
+          onChange={(v) => setFilters({ dropBreaks: v })}
+        />
+      ) : null}
       {error ? (
         <Alert severity="error">{error.message}</Alert>
       ) : (
