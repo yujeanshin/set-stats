@@ -1,5 +1,5 @@
 // Usage: node bin/stats.js [--drop-breaks]
-//   --drop-breaks  leave out gaps longer than 10x their game's median gap
+//   --drop-breaks  leave out gaps longer than 100x their game's median gap
 //                  from pace and game time (see breakFlags in lib/metrics.js)
 import { SITES } from "../lib/config.js";
 import db from "../lib/db.js";

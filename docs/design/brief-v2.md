@@ -29,7 +29,7 @@ These add to brief.md section 5 and match `ui/src/definitions.js`.
 
 - **Find:** a set the site accepted from me (a `finds` row). Selections the site ignored, because they used a taken card or repeated a card, are not finds.
 - **Find time:** as in brief.md: from the previous set anyone found, or from `started_at` for a game's first find, to this one. In the replay it is `finds.elapsed_ms`.
-- **Break:** a gap over 10× its game's median gap (`breakFlags`, `lib/metrics.js`). With Drop breaks on, the stats leave breaks out; the board replay doesn't.
+- **Break:** a gap over 100× its game's median gap (`breakFlags`, `lib/metrics.js`). With Drop breaks on, the stats leave breaks out; the board replay doesn't.
 - **Sets on board:** every set on the board just before the find (`finds.n_sets`), including the ones I didn't take.
 - **Cards left in deck:** cards not yet dealt to the board (`finds.deck_left`).
 - **Fresh:** how many of a set's cards were not on the board at the previous find (`board_sets.n_fresh`). The previous find is anyone's; in a solo game that is my own previous find. It is shown as – for a game's first find.

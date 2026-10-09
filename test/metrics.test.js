@@ -224,8 +224,8 @@ test("calendar thresholds are quartiles of the busy days", () => {
   assert.deepEqual(calendarThresholds([5]), [5, 5, 5]);
 });
 
-test("breakFlags: a gap over 10x the game's median gap is a break", () => {
-  assert.deepEqual(breakFlags([1000, 2000, 3000, 30000, 30001]), [
+test("breakFlags: a gap over 100x the game's median gap is a break", () => {
+  assert.deepEqual(breakFlags([1000, 2000, 3000, 300000, 300001]), [
     false,
     false,
     false,

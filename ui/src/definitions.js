@@ -5,7 +5,7 @@
 export const DEFINITIONS = {
   find: "A set the site accepted from me. Selections it ignored (a taken or repeated card) don't count.",
   findTime:
-    "Time from the previous set anyone found to this one; the first find is timed from the game's start. With Drop breaks on, a gap over 10× the game's median gap is a break: the stats leave it out, the board replay doesn't.",
+    "Time from the previous set anyone found to this one; the first find is timed from the game's start. With Drop breaks on, a gap over 100× the game's median gap is a break: the stats leave it out, the board replay doesn't.",
   setsOnBoard:
     "Every set on the board just before this find, including the ones I didn't take.",
   deckLeft: "Cards not yet dealt to the board.",

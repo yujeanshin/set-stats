@@ -79,7 +79,7 @@ export default function FilterBar() {
             />
           }
           label="Drop breaks"
-          title="Leave out any gap between sets longer than 10× that game's median gap, from both pace and game time"
+          title="Leave out any gap between sets longer than 100× that game's median gap, from both pace and game time"
         />
       </Stack>
     </Paper>

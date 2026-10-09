@@ -19,7 +19,10 @@ const db = memoryDb();
 const raw = fixtureRaw();
 insertRaw(db, raw);
 
-// Same seed and first 10 events, a day later, hints on, still in progress.
+// Same seed and first 10 events, a day later, hints on, still in progress,
+// with a 10-minute break before the sixth set: that gap is 602879 ms, over
+// 100x the game's median gap (3990.5 ms). The fixture game has no break.
+const SECOND_BREAK_MS = 2879 + 600_000;
 const game = JSON.parse(raw.game_json);
 const data = JSON.parse(raw.data_json);
 const SECOND = "second-game";
@@ -39,7 +42,10 @@ insertRaw(db, {
     events: Object.fromEntries(
       Object.entries(data.events)
         .slice(0, 10)
-        .map(([k, e]) => [k, { ...e, time: e.time + DAY }]),
+        .map(([k, e], i) => [
+          k,
+          { ...e, time: e.time + DAY + (i >= 5 ? 600_000 : 0) },
+        ]),
     ),
   }),
 });
@@ -108,21 +114,36 @@ test("summary: filters default to hints off, mode to most played", async () => {
   assert.equal(recent.windows.last30Days.avgTimeMs, null);
 });
 
-test("summary and game: dropBreaks removes the fixture's one break", async () => {
+test("summary and game: dropBreaks removes only gaps over 100x the median", async () => {
+  // The fixture game's longest gap is 11x its median: not a break.
   const plain = (await get("/summary")).body;
   const { body } = await get("/summary?dropBreaks=1");
   assert.equal(plain.dropBreaks, false);
   assert.equal(body.dropBreaks, true);
-  assert.equal(body.headline.fastestMs, 234786 - 40569);
-  assert.equal(body.headline.pace.avg, (9391.44 * 25 - 40569) / 24);
+  assert.deepEqual(body.headline, plain.headline);
+  const fixture = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
+  assert.equal(fixture.break_ms, 0);
+  assert.equal(fixture.findTimes.length, 25);
+  assert.equal(fixture.durationMs, 234786);
 
-  const game = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
-  assert.equal(game.break_ms, 40569);
-  assert.equal(game.findTimes.length, 24);
-  assert.equal(game.durationMs, 234786 - 40569);
-  const before = (await get(`/games/${GAME.game_id}`)).body;
+  // The second game's 10-minute gap is.
+  const game = (await get(`/games/${SECOND}?dropBreaks=1`)).body;
+  assert.equal(game.break_ms, SECOND_BREAK_MS);
+  assert.equal(game.findTimes.length, 9);
+  assert.equal(game.findTimes.includes(SECOND_BREAK_MS), false);
+  const before = (await get(`/games/${SECOND}`)).body;
   assert.equal(before.break_ms, null);
-  assert.equal(before.findTimes.length, 25);
+  assert.equal(before.findTimes.length, 10);
+  assert.equal(before.findTimes[5], SECOND_BREAK_MS);
+
+  // Pooled pace over both games drops the break.
+  const all = (await get("/summary?hintsOff=0")).body.windows.allTime;
+  const dropped = (await get("/summary?hintsOff=0&dropBreaks=1")).body.windows
+    .allTime;
+  assert.equal(
+    dropped.paceMs.toFixed(6),
+    ((all.paceMs * 35 - SECOND_BREAK_MS) / 34).toFixed(6),
+  );
 });
 
 test("calendar: one key per local day, bad zone is a 400", async () => {
@@ -264,20 +285,26 @@ test("games/:id/finds: boards and sets, matched to bars by findSeqs", async () =
     assert.equal(chosen.n_fresh == null, i === 0, "n_fresh null only first");
   }
   assert.equal(first.sets[0].diff_mask.length, 4);
-  // The one break is shown in the replay, flagged.
   assert.deepEqual(
-    body.finds.filter((f) => f.break).map((f) => f.seq),
-    [21],
+    body.finds.filter((f) => f.break),
+    [],
+    "the fixture has no break",
   );
 
-  // Bars with breaks dropped skip seq 21; findSeqs says which find each is.
-  const game = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
-  assert.equal(game.findSeqs.length, game.findTimes.length);
-  const bySeq = new Map(body.finds.map((f) => [f.seq, f]));
+  // The second game's break is still in the replay, flagged.
+  const second = (await get(`/games/${SECOND}/finds`)).body;
+  assert.equal(second.finds.length, 10);
+  assert.deepEqual(
+    second.finds.filter((f) => f.break).map((f) => f.seq),
+    [5],
+  );
+  // Bars with breaks dropped skip seq 5; findSeqs says which find each is.
+  const game = (await get(`/games/${SECOND}?dropBreaks=1`)).body;
+  assert.deepEqual(game.findSeqs, [0, 1, 2, 3, 4, 6, 7, 8, 9]);
+  const bySeq = new Map(second.finds.map((f) => [f.seq, f]));
   game.findSeqs.forEach((seq, i) =>
     assert.equal(bySeq.get(seq).elapsed_ms, game.findTimes[i]),
   );
-  assert.equal(game.findSeqs[21], 22);
 });
 
 test("games/:id/finds: other modes are flagged, unknown ids are a 404", async () => {
