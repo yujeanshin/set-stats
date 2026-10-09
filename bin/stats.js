@@ -1,6 +1,12 @@
+// Usage: node bin/stats.js [--drop-breaks]
+//   --drop-breaks  leave out gaps longer than 10x their game's median gap
+//                  from pace and game time (see breakFlags in lib/metrics.js)
 import { SITES } from "../lib/config.js";
 import db from "../lib/db.js";
 import { computeState } from "../lib/findTimes.js";
+import { BREAK_FACTOR, breakFlags } from "../lib/metrics.js";
+
+const dropBreaks = process.argv.includes("--drop-breaks");
 
 // source -> my user id on that site
 const UIDS = Object.fromEntries(
@@ -20,13 +26,18 @@ for (const row of rows) {
   const { scores, history } = computeState(row.source, data, mode);
 
   // pace
-  const gaps = [];
+  const all = [];
   let prev = game.startedAt;
   for (const event of history) {
     if (event.kind) continue;
-    if (event.user === UID) gaps.push(event.time - prev);
+    all.push({ user: event.user, ms: event.time - prev });
     prev = event.time; // resets on any accepted set
   }
+  const isBreak = dropBreaks ? breakFlags(all.map((g) => g.ms)) : [];
+  const gaps = all
+    .filter((g, i) => !isBreak[i] && g.user === UID)
+    .map((g) => g.ms);
+  const breakTime = all.reduce((t, g, i) => t + (isBreak[i] ? g.ms : 0), 0);
 
   // per-game summary
   const finished = game.status === "done";
@@ -36,7 +47,7 @@ for (const row of rows) {
     variant: Object.keys(game.users).length === 1 ? "solo" : "multiplayer",
     finished,
     duration: finished
-      ? game.endedAt - game.startedAt - (game.pauseTime ?? 0)
+      ? game.endedAt - game.startedAt - (game.pauseTime ?? 0) - breakTime
       : null,
     sets: scores[UID] ?? 0,
     gaps,
@@ -68,6 +79,10 @@ const since30 = new Date();
 since30.setHours(0, 0, 0, 0); // starts at local midnight
 since30.setDate(since30.getDate() - 30);
 
+if (dropBreaks)
+  console.log(
+    `breaks dropped: gaps over ${BREAK_FACTOR}x their game's median gap\n`,
+  );
 for (const [key, list] of groups) {
   console.log(key);
   line("all time", list);

@@ -1,6 +1,7 @@
 import { Alert, Box, Container, Link, Stack, Typography } from "@mui/material";
 import { Link as RouterLink, useLocation, useParams } from "react-router-dom";
 import { useApi } from "../api.js";
+import { useFilters } from "../filters.js";
 import FindTimesChart from "../components/FindTimesChart.jsx";
 import Tile from "../components/Tile.jsx";
 import { clock, dateTime, secs } from "../format.js";
@@ -62,7 +63,10 @@ function Subtitle({ game }) {
 /** Single game view (brief 7). */
 export default function Game() {
   const { id } = useParams();
-  const { data: game, error } = useApi(`/games/${encodeURIComponent(id)}`);
+  const [{ dropBreaks }] = useFilters();
+  const { data: game, error } = useApi(`/games/${encodeURIComponent(id)}`, {
+    dropBreaks,
+  });
   const s = game?.stats;
   const v = (ms) => (game ? secs(ms) : "…");
   const tiles = [

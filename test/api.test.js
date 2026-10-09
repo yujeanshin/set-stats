@@ -85,6 +85,23 @@ test("summary: filters default to hints off, mode to most played", async () => {
   assert.equal(recent.windows.last30Days.avgTimeMs, null);
 });
 
+test("summary and game: dropBreaks removes the fixture's one break", async () => {
+  const plain = (await get("/summary")).body;
+  const { body } = await get("/summary?dropBreaks=1");
+  assert.equal(plain.dropBreaks, false);
+  assert.equal(body.dropBreaks, true);
+  assert.equal(body.headline.fastestMs, 234786 - 40569);
+  assert.equal(body.headline.pace.avg, (9391.44 * 25 - 40569) / 24);
+
+  const game = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
+  assert.equal(game.break_ms, 40569);
+  assert.equal(game.findTimes.length, 24);
+  assert.equal(game.durationMs, 234786 - 40569);
+  const before = (await get(`/games/${GAME.game_id}`)).body;
+  assert.equal(before.break_ms, null);
+  assert.equal(before.findTimes.length, 25);
+});
+
 test("calendar: one key per local day, bad zone is a 400", async () => {
   const q = "/calendar?hintsOff=0&tz=UTC";
   const { body } = await get(`${q}&today=2026-10-09`);

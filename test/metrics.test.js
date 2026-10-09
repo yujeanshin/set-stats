@@ -5,6 +5,7 @@ import {
   calendarRange,
   calendarThresholds,
   aoX,
+  breakFlags,
   durationMs,
   findStats,
   gamesPerDay,
@@ -221,4 +222,26 @@ test("calendar thresholds are quartiles of the busy days", () => {
   assert.deepEqual(calendarThresholds([0, 0]), [1, 1, 1]);
   assert.deepEqual(calendarThresholds([0, 1, 2, 3, 4, 5, 6, 7, 8]), [2, 4, 6]);
   assert.deepEqual(calendarThresholds([5]), [5, 5, 5]);
+});
+
+test("breakFlags: a gap over 10x the game's median gap is a break", () => {
+  assert.deepEqual(breakFlags([1000, 2000, 3000, 30000, 30001]), [
+    false,
+    false,
+    false,
+    false,
+    true,
+  ]);
+  assert.deepEqual(breakFlags([5000]), [false]);
+  assert.deepEqual(breakFlags([]), []);
+  assert.deepEqual(breakFlags([0, 0, 0, 5]), [false, false, false, false]);
+});
+
+test("durationMs also subtracts break_ms when it is set", () => {
+  const game = { status: "done", started_at: 0, ended_at: 100_000 };
+  assert.equal(durationMs({ ...game, pause_time_ms: 1000 }), 99_000);
+  assert.equal(
+    durationMs({ ...game, pause_time_ms: 1000, break_ms: 40_000 }),
+    59_000,
+  );
 });

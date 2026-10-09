@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { rebuildDerived } from "../lib/derive.js";
-import { findTimes, gameDataFromRows } from "../lib/findTimes.js";
+import { findTimes, gameDataFromRows, gameTiming } from "../lib/findTimes.js";
 import { loadAll } from "../lib/load.js";
 import {
   EVENTS,
@@ -95,4 +95,25 @@ test("original-site games use the original's computeState, including setjr", () 
     () => findTimes({ ...swfGame, source: "forks" }, swfEvents, "me"),
     /invalid gameMode: setjr/,
   );
+});
+
+test("dropBreaks leaves the one break in the fixture out of find times", () => {
+  // the fixture's gaps have median 3671 ms; only the 40569 ms gap is over 10x
+  const all = findTimes(game, events, USER);
+  const timing = gameTiming(game, events, USER, { dropBreaks: true });
+  assert.equal(timing.breakMs, 40569);
+  assert.deepEqual(
+    timing.findTimes,
+    all.filter((t) => t !== 40569),
+  );
+  assert.deepEqual(gameTiming(game, events, USER), {
+    findTimes: all,
+    breakMs: 0,
+  });
+  // a break ended by someone else still counts as break time
+  const mixed = events.map((e) => ({ ...e, user_id: "other" }));
+  assert.deepEqual(gameTiming(game, mixed, USER, { dropBreaks: true }), {
+    findTimes: [],
+    breakMs: 40569,
+  });
 });
