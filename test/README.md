@@ -4,20 +4,26 @@
 npm test
 ```
 
-runs every `test/*.test.js` file with node's built-in test runner (`node:test`); no extra packages. takes about a second.
+runs every `test/*.test.js` file with node's built-in test runner (`node:test`); no extra packages. takes about ten seconds, most of it the setwithfriends simulation.
 
-the tests never write to `data/games.db`. each one builds its own in-memory database. the cross-check test only reads your local database, and is skipped if there isn't one.
+the tests never write to `data/games.db` and never contact either site. each one builds its own in-memory database. the cross-check test only reads your local database, and is skipped if there isn't one.
 
 ## files
 
-| file                 | what it checks                                               |
-| -------------------- | ------------------------------------------------------------ |
-| `fixture.js`         | not a test: shared data and helpers (see below)              |
-| `replay.test.js`     | the replay reproduces a real game exactly                    |
-| `lookups.test.js`    | the `cards` and `sets` tables                                |
-| `load.test.js`       | parsing `sync_raw` into `games` and `events`                 |
-| `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes  |
-| `crosscheck.test.js` | the replay agrees with the site's own code on all your games |
+| file                 | what it checks                                                           |
+| -------------------- | ------------------------------------------------------------------------ |
+| `fixture.js`         | not a test: shared data and helpers (see below)                          |
+| `replay.test.js`     | the replay reproduces a real game exactly                                |
+| `replay-swf.test.js` | setwithfriends' board rule, against its own code on simulated games      |
+| `lookups.test.js`    | the `cards` and `sets` tables                                            |
+| `load.test.js`       | parsing `sync_raw` into `games` and `events`                             |
+| `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes              |
+| `crosscheck.test.js` | the replay agrees with each site's own code on all your games            |
+| `schema.test.js`     | migrating an older database; per-site `my_finds`; `parseRaw` with a deck |
+| `config.test.js`     | the `swf:` id prefix                                                     |
+| `auth.test.js`       | token renewal and `accessToken`                                          |
+| `sync.test.js`       | which games sync fetches, and restoring archived games                   |
+| `queries.test.js`    | the web UI uses my user id on each game's site                           |
 
 ### `replay.test.js`
 
@@ -31,6 +37,12 @@ uses the real game `abandoned-tired-property`, with values taken from the site:
 - an accepted event that doesn't fit the board throws an error naming the game
 
 this is the most important test. if it fails, nothing built on the replay can be trusted.
+
+### `replay-swf.test.js`
+
+the setwithfriends board rule (`removeCardsSwf`) has no real game to check against, so this test plays 2000 games against that site's own `computeState` (`vendor/setwithfriends/util.js`): each turn it takes a random set from the board the site's code shows, sometimes in a different click order, sometimes adding an event the site ignores or two events at the same time. after every event, the replay must have the same remaining cards, in the same order, and the same board size as the site's code. the games are seeded, so every run plays the same ones.
+
+it also checks that the setwithforks rule gets most of these games wrong, so a mix-up between the two rules can't pass.
 
 ### `lookups.test.js`
 
@@ -64,10 +76,11 @@ loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
 - rebuilding again gives identical rows
 - `rebuild:new` derives only games without finds, re-derives re-synced games, and falls back to a full rebuild when `derive_version` doesn't match
 - a replay mismatch fails the rebuild and leaves `derive_version` unset
+- with `onError`, a mismatch is reported, the other games are still derived, and `rebuild:new` retries the failed one
 
 ### `crosscheck.test.js`
 
-replays every normal game in `data/games.db` with both `lib/replay.js` and the site's `computeState` from `vendor/game.js`, and checks they agree on the valid events, the cards left at the end, and the final board size. this covers thousands of real games instead of one, and catches the replay drifting from the site after `vendor/game.js` is updated.
+replays every normal game in `data/games.db` with both `lib/replay.js` and the `computeState` of the game's site (`vendor/game.js` or `vendor/setwithfriends/util.js`), and checks they agree on the valid events, the cards left at the end, and the final board size. this covers thousands of real games instead of one, and catches the replay drifting from the site after `vendor/game.js` is updated.
 
 it needs `npm run rebuild` to have loaded `games` and `events` first. without `data/games.db` it is skipped.
 
