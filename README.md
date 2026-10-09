@@ -134,7 +134,7 @@ games from setwithfriends are stored with ids starting with `swf:`, so they can'
 
 ### breaks
 
-if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 100 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. this is off by default.
+if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 100 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. this is off by default.
 
 avoid syncing while you have a game in progress. it will be saved as unfinished, and unfinished games are only rechecked and updated in the local database if you sync again within a day of when the game was created.
 
