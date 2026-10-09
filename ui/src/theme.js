@@ -14,6 +14,9 @@ export const colors = {
   // Light to dark. White text only on the last two.
   scale: ["#ebe8ee", "#dcc3dc", "#c08ac0", "#a04da0", "#800080"],
   record: "#b25c00",
+  // The chosen set in the board replay (brief-v2). Not the accent: card
+  // purple is #800080 too. White text on it passes AA (4.7:1).
+  chosen: "#2f7f86",
 };
 
 // 1120px of content plus 24px side padding, as a border-box width.

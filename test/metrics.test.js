@@ -5,6 +5,7 @@ import {
   calendarRange,
   calendarThresholds,
   aoX,
+  BREAK_FACTOR,
   breakFlags,
   durationMs,
   findStats,
@@ -132,6 +133,14 @@ test("headline tiles: stdev across per-game paces, last 5 finished for time", ()
   assert.equal(h.started, 5);
   assert.equal(h.finished, 4);
   assert.equal(h.fastestMs, 180_000);
+  assert.deepEqual(h.fastestGame, {
+    game_id: "e",
+    started_at: T0 + 3 * DAY + 3_600_000,
+  });
+  // a tie goes to the older game; no finished games, no fastest game
+  const tie = headline([...GAMES, game("f", T0 + 4 * DAY, 180_000, [1])]);
+  assert.equal(tie.fastestGame.game_id, "e");
+  assert.equal(headline([GAMES[2]]).fastestGame, null);
   assert.equal(h.pace.n, 4); // e has no finds
   assert.equal(h.pace.avg, 11_000);
   near(h.pace.sd, 1000 * Math.sqrt(26 / 3));
@@ -224,8 +233,9 @@ test("calendar thresholds are quartiles of the busy days", () => {
   assert.deepEqual(calendarThresholds([5]), [5, 5, 5]);
 });
 
-test("breakFlags: a gap over 10x the game's median gap is a break", () => {
-  assert.deepEqual(breakFlags([1000, 2000, 3000, 30000, 30001]), [
+test("breakFlags: a gap over 50x the game's median gap is a break", () => {
+  assert.equal(BREAK_FACTOR, 50);
+  assert.deepEqual(breakFlags([1000, 2000, 3000, 150000, 150001]), [
     false,
     false,
     false,
@@ -235,6 +245,20 @@ test("breakFlags: a gap over 10x the game's median gap is a break", () => {
   assert.deepEqual(breakFlags([5000]), [false]);
   assert.deepEqual(breakFlags([]), []);
   assert.deepEqual(breakFlags([0, 0, 0, 5]), [false, false, false, false]);
+});
+
+test("breakFlags: gaps under 100 ms don't count toward the median", () => {
+  // A burst of near-instant sets (a real swf game): the median of all gaps
+  // is 2 ms, which would make every ordinary gap a break. Without the
+  // burst the median is 10601.5 ms, so only gaps over about 9 min are breaks.
+  const gaps = [9011, 2, 83772, 3, 1, 1, 8963, 2, 2, 1, 1, 2, 2, 12192];
+  assert.deepEqual(breakFlags(gaps), Array(gaps.length).fill(false));
+  assert.deepEqual(
+    breakFlags([...gaps, 2_000_000]).at(-1),
+    true,
+    "a real break still counts",
+  );
+  assert.deepEqual(breakFlags([1, 2, 3]), [false, false, false]);
 });
 
 test("durationMs also subtracts break_ms when it is set", () => {

@@ -45,7 +45,7 @@ that is too complex for SQL, so it runs once in JavaScript and the results are s
 | `lib/lookups.js`                | fill `cards` and `sets`                                                              |
 | `lib/load.js`                   | parse `sync_raw` into `games` and `events`                                           |
 | `lib/replay.js`                 | replay one normal-mode game in memory (no database access)                           |
-| `lib/findTimes.js`              | find times and breaks per game, for every mode, via each site's `computeState`       |
+| `lib/findTimes.js`              | find times (and their `seq`s) and breaks per game, any mode, via `computeState`      |
 | `lib/derive.js`                 | run the replay for each game and write `finds` and `board_sets`                      |
 | `vendor/game.js`                | unmodified copy of setwithforks' `src/game.js` (see the main README for updating it) |
 | `vendor/setwithfriends/util.js` | the game logic of setwithfriends' `src/util.js`, unmodified                          |
@@ -137,6 +137,6 @@ after updating anything in `vendor/`, run `npm test`. the cross-check test compa
 - **keep the raw JSON.** `sync_raw` keeps exactly what the site returned, so parsing bugs can be fixed and everything re-derived without re-downloading
 - **raw accepts everything, derived is strict.** loading never filters by mode or site. the replay refuses to guess: any mismatch with the site is an error for that game, not a silently wrong row
 - **one database for both sites.** games from both sites share every table; `source` says where each came from, and the id prefix keeps ids apart. your user id differs per site, so `my_finds`, stats and the web UI look up the right one for each game
-- **breaks are a view, not data.** the break filter (a gap over 10 times its game's median gap) is applied when stats are computed (`breakFlags` in `lib/metrics.js`); nothing stored changes
+- **breaks are a view, not data.** the break filter (a gap over 50 times its game's median gap, ignoring gaps under 100 ms for the median) is applied when stats are computed (`breakFlags` in `lib/metrics.js`); nothing stored changes. the same goes for skipping solo games with bad timing (a gap under 100 ms, `badTiming`)
 - **one database file.** simpler to back up and query than separate files
 - **WAL journal mode.** a full rebuild commits one transaction per game; WAL halves the time. SQLite keeps `games.db-wal` and `games.db-shm` next to the database. copy all three (or copy while nothing is running) when backing up

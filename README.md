@@ -134,7 +134,11 @@ games from setwithfriends are stored with ids starting with `swf:`, so they can'
 
 ### breaks
 
-if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 10 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. this is off by default.
+if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 50 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. this is off by default. the full game page has its own **Drop breaks** switch.
+
+### bad timing
+
+no one finds a set in under 100 ms, so a solo game with such a gap has timestamps that are off. `npm run stats` and the web UI's time stats skip these games by default; `npm run stats -- --keep-bad-timing`, or unticking **Skip bad timing** in the web UI, keeps them. the web UI still lists them, tagged "Bad timing".
 
 avoid syncing while you have a game in progress. it will be saved as unfinished, and unfinished games are only rechecked and updated in the local database if you sync again within a day of when the game was created.
 
@@ -159,7 +163,7 @@ to work on the UI itself, run `node bin/ui.js` in one terminal and `npm run ui:d
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run check`       | check that your token and user ID work on the site named by `SET_SITE`                                                                                                |
 | `npm run sync`        | download new games from the site named by `SET_SITE` (default `forks`; `swf` for setwithfriends). `-- --limit N` fetches at most N games                              |
-| `npm run stats`       | print summary stats for both sites together. `-- --drop-breaks` leaves breaks out (see **breaks** above)                                                              |
+| `npm run stats`       | print summary stats for both sites together. `-- --drop-breaks` leaves breaks out, `-- --keep-bad-timing` keeps bad-timing games (see above)                          |
 | `npm run rebuild:new` | turn synced games into database tables, replaying only games that haven't been processed yet. fast; use this after every sync                                         |
 | `npm run rebuild`     | same, but rebuilds the board tables for every game from scratch (several seconds). use it after updating the code or `vendor/`, or if `rebuild:new` reports a problem |
 | `npm run ui`          | build and start the web UI at http://localhost:3000 (see **web UI** above)                                                                                            |

@@ -42,7 +42,7 @@ export default function Game() {
   const { id } = useParams();
   return (
     <Container maxWidth={false} sx={{ maxWidth: contentWidth, py: 3 }}>
-      <GameDetails id={id} header={<BackLink />} />
+      <GameDetails key={id} id={id} header={<BackLink />} replay />
     </Container>
   );
 }

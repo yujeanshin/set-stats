@@ -1,6 +1,6 @@
 # set stats web UI: design brief
 
-Version 1 of a local web UI for the set-stats repo. This brief is the source of truth for what to build. The mockups in `docs/design/mockups/` show the intended layout and look; where a mockup and this brief disagree, this brief wins.
+Version 1 of a local web UI for the set-stats repo. Version 2 is in [brief-v2.md](brief-v2.md). This brief is the source of truth for what to build. The mockups in `docs/design/mockups/` show the intended layout and look; where a mockup and this brief disagree, this brief wins.
 
 Suggested location in the repo:
 

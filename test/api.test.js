@@ -5,14 +5,24 @@ import { createApi } from "../lib/api.js";
 import { rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
 import { Queries } from "../lib/queries.js";
-import { fixtureRaw, GAME, insertRaw, memoryDb } from "./fixture.js";
+import {
+  EXPECTED,
+  fixtureRaw,
+  GAME,
+  insertRaw,
+  memoryDb,
+  OPENING_BOARD,
+} from "./fixture.js";
 
 const DAY = 86_400_000;
 const db = memoryDb();
 const raw = fixtureRaw();
 insertRaw(db, raw);
 
-// Same seed and first 10 events, a day later, hints on, still in progress.
+// Same seed and first 10 events, a day later, hints on, still in progress,
+// with a 10-minute break before the sixth set: that gap is 602879 ms, over
+// 50x the game's median gap (3990.5 ms). The fixture game has no break.
+const SECOND_BREAK_MS = 2879 + 600_000;
 const game = JSON.parse(raw.game_json);
 const data = JSON.parse(raw.data_json);
 const SECOND = "second-game";
@@ -32,9 +42,28 @@ insertRaw(db, {
     events: Object.fromEntries(
       Object.entries(data.events)
         .slice(0, 10)
-        .map(([k, e]) => [k, { ...e, time: e.time + DAY }]),
+        .map(([k, e], i) => [
+          k,
+          { ...e, time: e.time + DAY + (i >= 5 ? 600_000 : 0) },
+        ]),
     ),
   }),
+});
+// A two-player ultraset game: not solo, and not normal mode, so it has no
+// finds rows.
+const ULTRA = "ultra-game";
+insertRaw(db, {
+  id: ULTRA,
+  created_at: raw.created_at + 2 * DAY,
+  status: "done",
+  game_json: JSON.stringify({
+    ...game,
+    mode: "ultraset",
+    users: { ...game.users, other: game.createdAt },
+    startedAt: game.startedAt + 2 * DAY,
+    endedAt: game.endedAt + 2 * DAY,
+  }),
+  data_json: JSON.stringify({ seed: data.seed, events: {} }),
 });
 loadAll(db);
 rebuildDerived(db);
@@ -66,6 +95,10 @@ test("summary: filters default to hints off, mode to most played", async () => {
   assert.equal(body.headline.started, 1);
   assert.equal(body.headline.finished, 1);
   assert.equal(body.headline.fastestMs, 234786);
+  assert.deepEqual(body.headline.fastestGame, {
+    game_id: GAME.game_id,
+    started_at: GAME.started_at,
+  });
   assert.deepEqual(body.headline.pace, { n: 1, avg: 9391.44, sd: null });
   assert.equal(body.windows.allTime.paceMs, 9391.44);
   assert.equal(body.windows.last30Days, null);
@@ -85,21 +118,36 @@ test("summary: filters default to hints off, mode to most played", async () => {
   assert.equal(recent.windows.last30Days.avgTimeMs, null);
 });
 
-test("summary and game: dropBreaks removes the fixture's one break", async () => {
+test("summary and game: dropBreaks removes only gaps over 50x the median", async () => {
+  // The fixture game's longest gap is 11x its median: not a break.
   const plain = (await get("/summary")).body;
   const { body } = await get("/summary?dropBreaks=1");
   assert.equal(plain.dropBreaks, false);
   assert.equal(body.dropBreaks, true);
-  assert.equal(body.headline.fastestMs, 234786 - 40569);
-  assert.equal(body.headline.pace.avg, (9391.44 * 25 - 40569) / 24);
+  assert.deepEqual(body.headline, plain.headline);
+  const fixture = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
+  assert.equal(fixture.break_ms, 0);
+  assert.equal(fixture.findTimes.length, 25);
+  assert.equal(fixture.durationMs, 234786);
 
-  const game = (await get(`/games/${GAME.game_id}?dropBreaks=1`)).body;
-  assert.equal(game.break_ms, 40569);
-  assert.equal(game.findTimes.length, 24);
-  assert.equal(game.durationMs, 234786 - 40569);
-  const before = (await get(`/games/${GAME.game_id}`)).body;
+  // The second game's 10-minute gap is.
+  const game = (await get(`/games/${SECOND}?dropBreaks=1`)).body;
+  assert.equal(game.break_ms, SECOND_BREAK_MS);
+  assert.equal(game.findTimes.length, 9);
+  assert.equal(game.findTimes.includes(SECOND_BREAK_MS), false);
+  const before = (await get(`/games/${SECOND}`)).body;
   assert.equal(before.break_ms, null);
-  assert.equal(before.findTimes.length, 25);
+  assert.equal(before.findTimes.length, 10);
+  assert.equal(before.findTimes[5], SECOND_BREAK_MS);
+
+  // Pooled pace over both games drops the break.
+  const all = (await get("/summary?hintsOff=0")).body.windows.allTime;
+  const dropped = (await get("/summary?hintsOff=0&dropBreaks=1")).body.windows
+    .allTime;
+  assert.equal(
+    dropped.paceMs.toFixed(6),
+    ((all.paceMs * 35 - SECOND_BREAK_MS) / 34).toFixed(6),
+  );
 });
 
 test("calendar: one key per local day, bad zone is a 400", async () => {
@@ -211,4 +259,62 @@ test("positions: share of finds per position, normal mode only", async () => {
   assert.equal(sum.toFixed(9), "3.000000000");
   assert.equal((await get("/positions?hintsOff=0")).body.finds, 35);
   assert.equal((await get("/positions?mode=puzzle")).status, 400);
+});
+
+test("games/:id/finds: boards and sets, matched to bars by findSeqs", async () => {
+  const { body } = await get(`/games/${GAME.game_id}/finds`);
+  assert.equal(body.normalOnly, false);
+  assert.equal(body.n_players, 1);
+  assert.equal(body.finds.length, 25);
+  const [first] = body.finds;
+  assert.deepEqual(first.board, OPENING_BOARD);
+  assert.equal(first.board_size, 12);
+  assert.equal(first.n_sets, 3);
+  assert.equal(first.deck_left, 69);
+  assert.equal(first.elapsed_ms, 2625);
+  assert.equal(first.mine, true);
+  for (const [i, f] of body.finds.entries()) {
+    assert.equal(f.sets.length, f.n_sets);
+    assert.equal(f.sets[0].is_chosen, true, "chosen set comes first");
+    assert.equal(f.sets.filter((s) => s.is_chosen).length, 1);
+    // positions line up with the board and with the fixture's clicks
+    const chosen = f.sets[0];
+    chosen.positions.forEach((p, j) =>
+      assert.equal(f.board[p], chosen.cards[j]),
+    );
+    assert.deepEqual(
+      chosen.positions.toSorted((a, b) => a - b),
+      EXPECTED[i].pos.toSorted((a, b) => a - b),
+    );
+    assert.equal(chosen.n_fresh == null, i === 0, "n_fresh null only first");
+  }
+  assert.equal(first.sets[0].diff_mask.length, 4);
+  assert.deepEqual(
+    body.finds.filter((f) => f.break),
+    [],
+    "the fixture has no break",
+  );
+
+  // The second game's break is still in the replay, flagged.
+  const second = (await get(`/games/${SECOND}/finds`)).body;
+  assert.equal(second.finds.length, 10);
+  assert.deepEqual(
+    second.finds.filter((f) => f.break).map((f) => f.seq),
+    [5],
+  );
+  // Bars with breaks dropped skip seq 5; findSeqs says which find each is.
+  const game = (await get(`/games/${SECOND}?dropBreaks=1`)).body;
+  assert.deepEqual(game.findSeqs, [0, 1, 2, 3, 4, 6, 7, 8, 9]);
+  const bySeq = new Map(second.finds.map((f) => [f.seq, f]));
+  game.findSeqs.forEach((seq, i) =>
+    assert.equal(bySeq.get(seq).elapsed_ms, game.findTimes[i]),
+  );
+});
+
+test("games/:id/finds: other modes are flagged, unknown ids are a 404", async () => {
+  const { body } = await get(`/games/${ULTRA}/finds`);
+  assert.equal(body.normalOnly, true);
+  assert.equal(body.n_players, 2);
+  assert.deepEqual(body.finds, []);
+  assert.equal((await get("/games/no-such-game/finds")).status, 404);
 });
