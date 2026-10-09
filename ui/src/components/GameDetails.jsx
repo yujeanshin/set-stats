@@ -46,7 +46,7 @@ function BreaksSwitch({ game, dropBreaks, onChange }) {
     ? null
     : game.break_ms
       ? `${clock(game.break_ms)} of breaks left out of the stats; break bars are grey and cut off.`
-      : "No breaks in this game: no gap is over 100× its median gap.";
+      : "No breaks in this game: no gap is over 50× its median gap.";
   return (
     <Box
       sx={{
