@@ -125,6 +125,22 @@ test("my_finds uses each site's own user id", () => {
   assert.equal(count(db, "my_finds WHERE game_id = 'swf:theirs'"), 0);
 });
 
+test("my_finds joined to filtered games doesn't scan finds by user", () => {
+  // With finds_user driving the join, the web UI's position heatmap query
+  // read every one of my finds once per game and took over 30 s.
+  const db = new Database(":memory:");
+  migrate(db, { myUserId: "me" });
+  const plan = db
+    .prepare(
+      `EXPLAIN QUERY PLAN SELECT COUNT(*) FROM my_finds JOIN games g
+       USING (game_id) WHERE g.n_players = 1 AND g.mode = 'normal'`,
+    )
+    .all()
+    .map((r) => r.detail)
+    .join("\n");
+  assert.doesNotMatch(plan, /finds_user/);
+});
+
 test("parseRaw keeps the source and stores an explicit deck", () => {
   const { events } = JSON.parse(fixtureRaw().data_json);
   const cards = ["2222", "0000", "1111"];
