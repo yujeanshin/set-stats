@@ -144,7 +144,8 @@ function LegendItem({ swatch, label }) {
 export default function OverTimeChart({ series, metric, avg, windowSize }) {
   const points = series.data?.points ?? [];
   const navigate = useNavigate();
-  const { search } = useLocation();
+  const location = useLocation();
+  const { search } = location;
   const averageLabel =
     avg === "aox"
       ? `ao${windowSize}`
@@ -161,7 +162,12 @@ export default function OverTimeChart({ series, metric, avg, windowSize }) {
     onClick(event, elements, chart) {
       const hit = elements.find((el) => el.datasetIndex === 0);
       const gameId = hit && chart.data.datasets[0].data[hit.index]?.gameId;
-      if (gameId) navigate({ pathname: `/games/${gameId}`, search });
+      // Opens as a dialog over the dashboard (App.jsx).
+      if (gameId)
+        navigate(
+          { pathname: `/games/${gameId}`, search },
+          { state: { backgroundLocation: location } },
+        );
     },
     scales: {
       x: {
