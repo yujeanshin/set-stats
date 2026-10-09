@@ -35,7 +35,7 @@ things to keep in mind:
 
 ## setup
 ### 0. requirements
-- node.js 20 or newer
+- node.js 22 or newer
 - some games played on setwithforks
 - a browser with developer tools to get your sign-in token
 ### 1. get the code
