@@ -1,6 +1,7 @@
-import { getIdToken } from "./auth.js";
-import { DB_URL, UID } from "./config.js";
-import db from "./db.js";
+import { getIdToken } from "../lib/auth.js";
+import { DB_URL, UID } from "../lib/config.js";
+import db from "../lib/db.js";
+import { setMeta } from "../lib/schema.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const BATCH = 5;
@@ -13,7 +14,7 @@ async function read(path) {
 }
 
 const upsert = db.prepare(`
-  INSERT INTO games (id, created_at, status, game_json, data_json)
+  INSERT INTO sync_raw (id, created_at, status, game_json, data_json)
   VALUES (?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     status = excluded.status,
@@ -23,7 +24,10 @@ const upsert = db.prepare(`
 
 const userGames = (await read(`userGames/${UID}`)) ?? {};
 const known = new Map(
-  db.prepare("SELECT id, status FROM games").all().map((r) => [r.id, r.status])
+  db
+    .prepare("SELECT id, status FROM sync_raw")
+    .all()
+    .map((r) => [r.id, r.status]),
 );
 
 const todo = Object.entries(userGames).filter(([id, createdAt]) => {
@@ -31,7 +35,9 @@ const todo = Object.entries(userGames).filter(([id, createdAt]) => {
   return known.get(id) !== "done" && Date.now() - createdAt < DAY;
 });
 
-console.log(`${Object.keys(userGames).length} games on server, ${todo.length} to fetch`);
+console.log(
+  `${Object.keys(userGames).length} games on server, ${todo.length} to fetch`,
+);
 
 for (let i = 0; i < todo.length; i += BATCH) {
   await Promise.all(
@@ -42,8 +48,16 @@ for (let i = 0; i < todo.length; i += BATCH) {
         read(`gameData/${key}`),
       ]);
       if (!game) return;
-      upsert.run(id, createdAt, game.status, JSON.stringify(game), JSON.stringify(data));
-    })
+      upsert.run(
+        id,
+        createdAt,
+        game.status,
+        JSON.stringify(game),
+        JSON.stringify(data),
+      );
+    }),
   );
   console.log(`${Math.min(i + BATCH, todo.length)}/${todo.length}`);
 }
+
+setMeta(db, "last_sync_at", Date.now());
