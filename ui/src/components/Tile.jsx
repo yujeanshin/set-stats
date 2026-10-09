@@ -48,7 +48,8 @@ export default function Tile({
               fontSize: suffixSize,
               fontWeight: 500,
               color: "text.secondary",
-              display: "inline-block",
+              // Inline, not inline-block, so the leading space below is kept
+              // at the suffix's size, as in the mockup.
               whiteSpace: "nowrap",
             }}
           >

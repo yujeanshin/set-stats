@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Alert,
+  Box,
   MenuItem,
   Paper,
   Select,
@@ -21,6 +22,7 @@ import {
   localMidnightDaysAgo,
   secs,
 } from "../format.js";
+import Histogram from "./Histogram.jsx";
 import OverTimeChart from "./OverTimeChart.jsx";
 
 const WINDOWS = [5, 10, 12, 50, 100];
@@ -296,12 +298,15 @@ export default function OverTime() {
       {series.error ? (
         <Alert severity="error">{series.error.message}</Alert>
       ) : null}
-      <OverTimeChart
-        series={series}
-        metric={metric}
-        avg={avg}
-        windowSize={windowSize}
-      />
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+        <OverTimeChart
+          series={series}
+          metric={metric}
+          avg={avg}
+          windowSize={windowSize}
+        />
+        <Histogram series={series} metric={metric} />
+      </Box>
     </Paper>
   );
 }

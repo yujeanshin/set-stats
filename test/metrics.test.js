@@ -166,6 +166,22 @@ test("histogram picks a nice width and aligns edges to it", () => {
   assert.deepEqual(histogram([]), { widthMs: null, bins: [] });
 });
 
+test("histogram puts the top 2% past the width in one open bin", () => {
+  // 98 values from 1 s to 9.73 s, plus two stalls.
+  const values = Array.from({ length: 98 }, (_, i) => 1000 + i * 90);
+  const h = histogram([...values, 40_000, 95_000]);
+  assert.equal(h.widthMs, 1000);
+  const last = h.bins.at(-1);
+  assert.deepEqual(last, { from: 10_000, to: null, count: 2 });
+  assert.equal(h.bins.length, 10);
+  assert.equal(
+    h.bins.reduce((a, b) => a + b.count, 0),
+    100,
+  );
+  // No open bin when the maximum is inside the regular bins.
+  assert.equal(histogram(values).bins.at(-1).to, 10_000);
+});
+
 test("gamesPerDay buckets by local day in the given zone", () => {
   const tz = "America/New_York";
   assert.deepEqual(
