@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  addDays,
+  calendarRange,
+  calendarThresholds,
   aoX,
   durationMs,
   findStats,
@@ -199,4 +202,23 @@ test("gamesPerDay buckets by local day in the given zone", () => {
   assert.equal(localDayKey(Date.UTC(2026, 0, 1, 3), tz), "2025-12-31");
   assert.equal(localDayKey(Date.UTC(2026, 0, 1, 3), "UTC"), "2026-01-01");
   assert.throws(() => localDayKey(T0, "Mars/Olympus"), RangeError);
+});
+
+test("calendar range: past year ends today, a year is Jan 1 to Dec 31", () => {
+  assert.equal(addDays("2026-03-01", -1), "2026-02-28");
+  assert.equal(addDays("2024-12-31", 1), "2025-01-01");
+  assert.deepEqual(calendarRange(null, "2026-10-09"), {
+    from: "2025-10-10",
+    to: "2026-10-09",
+  });
+  assert.deepEqual(calendarRange(2025, "2026-10-09"), {
+    from: "2025-01-01",
+    to: "2025-12-31",
+  });
+});
+
+test("calendar thresholds are quartiles of the busy days", () => {
+  assert.deepEqual(calendarThresholds([0, 0]), [1, 1, 1]);
+  assert.deepEqual(calendarThresholds([0, 1, 2, 3, 4, 5, 6, 7, 8]), [2, 4, 6]);
+  assert.deepEqual(calendarThresholds([5]), [5, 5, 5]);
 });

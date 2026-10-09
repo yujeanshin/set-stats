@@ -86,9 +86,28 @@ test("summary: filters default to hints off, mode to most played", async () => {
 });
 
 test("calendar: one key per local day, bad zone is a 400", async () => {
-  const { body } = await get("/calendar?hintsOff=0&tz=UTC");
+  const q = "/calendar?hintsOff=0&tz=UTC";
+  const { body } = await get(`${q}&today=2026-10-09`);
   assert.deepEqual(Object.values(body.days), [1, 1]);
   assert.equal(Object.keys(body.days)[0], "2026-08-17");
+  assert.equal(body.year, null);
+  assert.equal(body.from, "2025-10-10");
+  assert.equal(body.to, "2026-10-09");
+  assert.equal(body.total, 2);
+  assert.deepEqual(body.years, [2026]);
+  assert.deepEqual(body.thresholds, [1, 1, 1]);
+
+  // The past year ends today: a year later, both games have dropped out.
+  const later = (await get(`${q}&today=2027-08-18`)).body;
+  assert.equal(later.total, 0);
+  assert.deepEqual(later.days, {});
+
+  const year = (await get(`${q}&year=2026&today=2027-08-18`)).body;
+  assert.equal(year.from, "2026-01-01");
+  assert.equal(year.to, "2026-12-31");
+  assert.equal(year.total, 2);
+
+  assert.equal((await get(`${q}&today=yesterday`)).status, 400);
   const bad = await get("/calendar?tz=Mars/Olympus");
   assert.equal(bad.status, 400);
   assert.match(bad.body.error, /time zone/);

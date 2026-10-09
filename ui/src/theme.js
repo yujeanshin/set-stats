@@ -62,6 +62,7 @@ const theme = createTheme({
         root: {
           minHeight: 44,
           padding: "0 14px",
+          whiteSpace: "nowrap",
           textTransform: "none",
           fontSize: 15,
           fontWeight: 500,

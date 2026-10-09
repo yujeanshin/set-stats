@@ -1,5 +1,6 @@
 import { Stack } from "@mui/material";
 import { useApi } from "../api.js";
+import Calendar from "../components/Calendar.jsx";
 import FilterBar from "../components/FilterBar.jsx";
 import HeadlineTiles from "../components/HeadlineTiles.jsx";
 import { useFilters } from "../filters.js";
@@ -18,6 +19,7 @@ export default function Dashboard() {
     <Stack spacing={3}>
       <FilterBar />
       <HeadlineTiles summary={summary} />
+      <Calendar />
       <OverTime />
     </Stack>
   );
