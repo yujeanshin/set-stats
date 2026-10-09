@@ -1,14 +1,14 @@
 import Database from "better-sqlite3";
+import { UID } from "./config.js";
+import { migrate } from "./lib/schema.js";
 
-const db = new Database("games.db");
-db.exec(`
-  CREATE TABLE IF NOT EXISTS games (
-    id TEXT PRIMARY KEY,
-    created_at INTEGER NOT NULL,
-    status TEXT,
-    game_json TEXT,
-    data_json TEXT
-  )
-`);
+export function openDb(file = "games.db") {
+  const db = new Database(file);
+  db.pragma("foreign_keys = ON");
+  migrate(db, { myUserId: UID });
+  return db;
+}
+
+const db = openDb();
 
 export default db;

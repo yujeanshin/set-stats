@@ -3,7 +3,7 @@ import db from "./db.js";
 import { computeState } from "./vendor/game.js";
 
 const DAY = 24 * 60 * 60 * 1000;
-const rows = db.prepare("SELECT * FROM games ORDER BY created_at").all();
+const rows = db.prepare("SELECT * FROM sync_raw ORDER BY created_at").all();
 
 const games = [];
 for (const row of rows) {

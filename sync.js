@@ -1,6 +1,7 @@
 import { getIdToken } from "./auth.js";
 import { DB_URL, UID } from "./config.js";
 import db from "./db.js";
+import { setMeta } from "./lib/schema.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const BATCH = 5;
@@ -13,7 +14,7 @@ async function read(path) {
 }
 
 const upsert = db.prepare(`
-  INSERT INTO games (id, created_at, status, game_json, data_json)
+  INSERT INTO sync_raw (id, created_at, status, game_json, data_json)
   VALUES (?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     status = excluded.status,
@@ -23,7 +24,7 @@ const upsert = db.prepare(`
 
 const userGames = (await read(`userGames/${UID}`)) ?? {};
 const known = new Map(
-  db.prepare("SELECT id, status FROM games").all().map((r) => [r.id, r.status])
+  db.prepare("SELECT id, status FROM sync_raw").all().map((r) => [r.id, r.status])
 );
 
 const todo = Object.entries(userGames).filter(([id, createdAt]) => {
@@ -47,3 +48,5 @@ for (let i = 0; i < todo.length; i += BATCH) {
   );
   console.log(`${Math.min(i + BATCH, todo.length)}/${todo.length}`);
 }
+
+setMeta(db, "last_sync_at", Date.now());
