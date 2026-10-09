@@ -13,9 +13,11 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { DEFINITIONS } from "../definitions.js";
 import { secs } from "../format.js";
 import { colors } from "../theme.js";
 import DiffMarks from "./DiffMarks.jsx";
+import InfoTip from "./InfoTip.jsx";
 import SetCard from "./SetCard.jsx";
 
 const CARD = 64; // board card width, px
@@ -39,12 +41,12 @@ function useArrowKeys(onStep) {
   }, [onStep]);
 }
 
-/** One label: value pair in the per-step stats row. */
-function Stat({ label, children }) {
+/** One label: value pair in the per-step stats row, with its definition. */
+function Stat({ label, info, children }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
       <Typography variant="subtitle2" component="span">
-        {label}
+        {label} <InfoTip title={info} label={label.toLowerCase()} />
       </Typography>
       <Box component="span" sx={{ fontFamily: "mono", fontSize: 17 }}>
         {children}
@@ -234,8 +236,10 @@ export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
       <Box
         sx={{ display: "flex", flexWrap: "wrap", columnGap: 4, rowGap: 1.5 }}
       >
-        <Stat label="Find">{step + 1}</Stat>
-        <Stat label="Find time">
+        <Stat label="Find" info={DEFINITIONS.find}>
+          {step + 1}
+        </Stat>
+        <Stat label="Find time" info={DEFINITIONS.findTime}>
           {secs(find.elapsed_ms)} s
           {breaksDropped && find.break ? (
             <Typography variant="caption" component="span">
@@ -244,9 +248,13 @@ export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
             </Typography>
           ) : null}
         </Stat>
-        <Stat label="Sets on board">{find.n_sets}</Stat>
-        <Stat label="Cards left in deck">{find.deck_left}</Stat>
-        <Stat label="Fresh in chosen set">
+        <Stat label="Sets on board" info={DEFINITIONS.setsOnBoard}>
+          {find.n_sets}
+        </Stat>
+        <Stat label="Cards left in deck" info={DEFINITIONS.deckLeft}>
+          {find.deck_left}
+        </Stat>
+        <Stat label="Fresh in chosen set" info={DEFINITIONS.fresh}>
           {chosen.n_fresh == null ? "–" : `${chosen.n_fresh} of 3`}
         </Stat>
       </Box>
@@ -278,6 +286,16 @@ export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
             sx={{ minHeight: 44, ml: 0 }}
           />
           {showSets ? (
+            <Typography variant="caption" component="p" sx={{ mb: 0.5 }}>
+              Hover a set to outline it on the board.{" "}
+              <InfoTip
+                title={DEFINITIONS.diffMarks}
+                label="the C S F N marks"
+              />{" "}
+              <InfoTip title={DEFINITIONS.fresh} label="fresh" />
+            </Typography>
+          ) : null}
+          {showSets ? (
             <SetList find={find} hovered={hoveredId} onHover={setHoveredId} />
           ) : (
             <Box
@@ -285,6 +303,10 @@ export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
             >
               <DiffMarks mask={chosen.diff_mask} />
               <ChosenTag />
+              <InfoTip
+                title={DEFINITIONS.diffMarks}
+                label="the C S F N marks"
+              />
             </Box>
           )}
         </Box>

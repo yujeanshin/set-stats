@@ -10,9 +10,11 @@ import { Box, Paper, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import "../chart.js";
+import { DEFINITIONS } from "../definitions.js";
 import { secs } from "../format.js";
 import { colors } from "../theme.js";
 import DiffMarks from "./DiffMarks.jsx";
+import InfoTip from "./InfoTip.jsx";
 import SetCard from "./SetCard.jsx";
 
 const HEIGHT = 280;
@@ -228,7 +230,8 @@ export default function FindTimesChart({
         }}
       >
         <Typography variant="h2" component="h2">
-          Time per find
+          Time per find{" "}
+          <InfoTip title={DEFINITIONS.findTime} label="find time" />
         </Typography>
         {medianMs != null ? (
           <Box
@@ -254,6 +257,12 @@ export default function FindTimesChart({
       {note ? (
         <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
           {note}
+        </Typography>
+      ) : bars.some((b) => b.find) ? (
+        <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
+          Hover a bar to see the set I took.{" "}
+          <InfoTip title={DEFINITIONS.diffMarks} label="the C S F N marks" />
+          {onSelect ? " Click it to show that board below." : null}
         </Typography>
       ) : null}
       <Box sx={{ overflowX: "auto", mt: 2 }}>
