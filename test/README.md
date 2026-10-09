@@ -10,17 +10,19 @@ the tests never write to `data/games.db`. each one builds its own in-memory data
 
 ## files
 
-| file | what it checks |
-| --- | --- |
-| `fixture.js` | not a test: shared data and helpers (see below) |
-| `replay.test.js` | the replay reproduces a real game exactly |
-| `lookups.test.js` | the `cards` and `sets` tables |
-| `load.test.js` | parsing `sync_raw` into `games` and `events` |
-| `derive.test.js` | the `finds` and `board_sets` tables, and both rebuild modes |
+| file                 | what it checks                                               |
+| -------------------- | ------------------------------------------------------------ |
+| `fixture.js`         | not a test: shared data and helpers (see below)              |
+| `replay.test.js`     | the replay reproduces a real game exactly                    |
+| `lookups.test.js`    | the `cards` and `sets` tables                                |
+| `load.test.js`       | parsing `sync_raw` into `games` and `events`                 |
+| `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes  |
 | `crosscheck.test.js` | the replay agrees with the site's own code on all your games |
 
 ### `replay.test.js`
+
 uses the real game `abandoned-tired-property`, with values taken from the site:
+
 - the opening board, positions 0-11
 - for all 25 events: they are all valid, plus the board size, number of sets on the board, and board positions of the clicked cards
 - the first `elapsed_ms` is 2625 (measured from `startedAt`)
@@ -31,6 +33,7 @@ uses the real game `abandoned-tired-property`, with values taken from the site:
 this is the most important test. if it fails, nothing built on the replay can be trusted.
 
 ### `lookups.test.js`
+
 - 81 cards and 1080 sets
 - `n_diff` counts are 108, 324, 432, 216 for 1-4 differing features
 - every set is valid, sorted, has the right `diff_mask`, and every card appears in exactly 40 sets
@@ -38,7 +41,9 @@ this is the most important test. if it fails, nothing built on the replay can be
 - filling the lookups again adds no duplicates and repairs a missing row
 
 ### `load.test.js`
+
 uses the fixture game plus two made-up games: an ultraset game (with `c4`, a pause time, hints and 2 players) and a `waiting` game with no events or start time.
+
 - every mode is loaded, and each game field is mapped to the right column
 - events are numbered by time with ties broken by push key, even when the JSON lists them in another order; cards keep click order
 - times are stored as integers; a fractional time is rejected
@@ -47,7 +52,9 @@ uses the fixture game plus two made-up games: an ultraset game (with `c4`, a pau
 - a re-synced game gets its new events, and its stale derived rows are removed
 
 ### `derive.test.js`
+
 loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
+
 - only the normal game gets derived rows
 - every `finds` row matches the fixture: board size, number of sets, positions, `elapsed_ms`, `deck_left`
 - every `board_sets` row's positions point at its cards on the board
@@ -59,6 +66,7 @@ loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
 - a replay mismatch fails the rebuild and leaves `derive_version` unset
 
 ### `crosscheck.test.js`
+
 replays every normal game in `data/games.db` with both `lib/replay.js` and the site's `computeState` from `vendor/game.js`, and checks they agree on the valid events, the cards left at the end, and the final board size. this covers thousands of real games instead of one, and catches the replay drifting from the site after `vendor/game.js` is updated.
 
 it needs `npm run rebuild` to have loaded `games` and `events` first. without `data/games.db` it is skipped.

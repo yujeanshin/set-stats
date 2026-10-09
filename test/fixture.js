@@ -9,7 +9,8 @@ export const GAME = {
   started_at: 1786983711802,
 };
 
-export const OPENING_BOARD = "0120 2210 0110 0111 0210 2011 1211 0220 1100 0112 1102 2022".split(" ");
+export const OPENING_BOARD =
+  "0120 2210 0110 0111 0210 2011 1211 0220 1100 0112 1102 2022".split(" ");
 
 export const LEFTOVER = "1221 1101 0020 1010 2222 1122".split(" ");
 
@@ -45,7 +46,15 @@ export const EXPECTED = `
   .split("\n")
   .map((line) => {
     const [time, c1, c2, c3, size, nSets, pos] = line.trim().split(/\s+/);
-    return { time: +time, c1, c2, c3, size: +size, nSets: +nSets, pos: pos.split(",").map(Number) };
+    return {
+      time: +time,
+      c1,
+      c2,
+      c3,
+      size: +size,
+      nSets: +nSets,
+      pos: pos.split(",").map(Number),
+    };
   });
 
 export const USER = "jgp8PWJfSuRfLypnZwqC4isEYdg2";
@@ -76,7 +85,10 @@ export function fixtureRaw() {
     users: { [USER]: 1786983708344 },
   };
   const events = Object.fromEntries(
-    EXPECTED.map((e, i) => [pushKey(i), { c1: e.c1, c2: e.c2, c3: e.c3, time: e.time, user: USER }])
+    EXPECTED.map((e, i) => [
+      pushKey(i),
+      { c1: e.c1, c2: e.c2, c3: e.c3, time: e.time, user: USER },
+    ]),
   );
   return {
     id: GAME.game_id,
@@ -92,7 +104,7 @@ export function insertRaw(db, raw) {
     `INSERT INTO sync_raw (id, created_at, status, game_json, data_json)
      VALUES (@id, @created_at, @status, @game_json, @data_json)
      ON CONFLICT(id) DO UPDATE SET status = excluded.status,
-       game_json = excluded.game_json, data_json = excluded.data_json`
+       game_json = excluded.game_json, data_json = excluded.data_json`,
   ).run(raw);
 }
 
@@ -105,4 +117,5 @@ export function memoryDb() {
   return db;
 }
 
-export const count = (db, sql, ...args) => db.prepare(`SELECT COUNT(*) AS n FROM ${sql}`).get(...args).n;
+export const count = (db, sql, ...args) =>
+  db.prepare(`SELECT COUNT(*) AS n FROM ${sql}`).get(...args).n;

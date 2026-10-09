@@ -13,7 +13,7 @@ for (const row of rows) {
 
   const mode = game.mode || "normal";
   const { scores, history } = computeState(data, mode);
-  
+
   // pace
   const gaps = [];
   let prev = game.startedAt;
@@ -22,7 +22,7 @@ for (const row of rows) {
     if (event.user === UID) gaps.push(event.time - prev);
     prev = event.time; // resets on any accepted set
   }
-  
+
   // per-game summary
   const finished = game.status === "done";
   games.push({
@@ -45,7 +45,7 @@ function line(label, list) {
     `  ${label}: ${finished.length} finished, ` +
       `${list.length - finished.length} unfinished, ` +
       `avg time ${secs(finished.map((g) => g.duration))}, ` +
-      `pace ${secs(list.flatMap((g) => g.gaps))}`
+      `pace ${secs(list.flatMap((g) => g.gaps))}`,
   );
 }
 
@@ -59,6 +59,9 @@ for (const g of games) {
 for (const [key, list] of groups) {
   console.log(key);
   line("all time", list);
-  line("last 30 days", list.filter((g) => g.createdAt > Date.now() - 30 * DAY));
+  line(
+    "last 30 days",
+    list.filter((g) => g.createdAt > Date.now() - 30 * DAY),
+  );
   line("last 10 finished", list.filter((g) => g.finished).slice(-10));
 }

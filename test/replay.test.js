@@ -12,7 +12,10 @@ test("opening board matches the site", () => {
 
 test("all 25 events are valid", () => {
   assert.equal(result.finds.length, 25);
-  assert.deepEqual(result.finds.map((f) => f.seq), EVENTS.map((e) => e.seq));
+  assert.deepEqual(
+    result.finds.map((f) => f.seq),
+    EVENTS.map((e) => e.seq),
+  );
 });
 
 test("board size, set count and click positions for every find", () => {
@@ -23,7 +26,11 @@ test("board size, set count and click positions for every find", () => {
     assert.equal(f.board.length, exp.size, `${label} board length`);
     assert.equal(findSets(f.board).length, exp.nSets, `${label} n_sets`);
     assert.deepEqual(f.positions, exp.pos, `${label} positions`);
-    assert.deepEqual(f.positions.map((p) => f.board[p]), [exp.c1, exp.c2, exp.c3], `${label} cards`);
+    assert.deepEqual(
+      f.positions.map((p) => f.board[p]),
+      [exp.c1, exp.c2, exp.c3],
+      `${label} cards`,
+    );
   }
 });
 
@@ -51,13 +58,22 @@ test("duplicate and already-taken cards are skipped", () => {
     { ...EVENTS[1], seq: 3 },
   ];
   const { finds } = replayGame(GAME, events);
-  assert.deepEqual(finds.map((f) => f.seq), [0, 3]);
+  assert.deepEqual(
+    finds.map((f) => f.seq),
+    [0, 3],
+  );
   assert.equal(finds[1].elapsed_ms, EVENTS[1].time_ms - EVENTS[0].time_ms);
 });
 
 test("an accepted event that doesn't fit the board throws, naming the game", () => {
   const notOnBoard = [{ ...EVENTS[1], seq: 0 }];
-  assert.throws(() => replayGame(GAME, notOnBoard), /abandoned-tired-property.*not all on board/);
+  assert.throws(
+    () => replayGame(GAME, notOnBoard),
+    /abandoned-tired-property.*not all on board/,
+  );
   const notASet = [{ ...EVENTS[0], seq: 0, c3: OPENING_BOARD[0] }];
-  assert.throws(() => replayGame(GAME, notASet), /abandoned-tired-property.*not a set/);
+  assert.throws(
+    () => replayGame(GAME, notASet),
+    /abandoned-tired-property.*not a set/,
+  );
 });

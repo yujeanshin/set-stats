@@ -29,23 +29,23 @@ that is too complex for SQL, so it runs once in JavaScript and the results are s
 
 ## files
 
-| file | role |
-| --- | --- |
-| `bin/check.js` | check that the token and user id work |
-| `bin/sync.js` | download new or recently unfinished games into `sync_raw`; record `last_sync_at` |
-| `bin/stats.js` | print summary stats (reads `sync_raw` directly, uses the site's `computeState`) |
-| `bin/rebuild.js` | load, then derive; see [rebuild modes](#rebuild-modes) |
-| `lib/config.js` | your user id and the site's Firebase settings |
-| `lib/auth.js` | exchange the refresh token in `data/token.json` for an id token |
-| `lib/paths.js` | locate `data/` relative to the code, so commands work from any folder |
-| `lib/db.js` | open `data/games.db` (WAL mode, foreign keys on), run migrations, fill lookups |
-| `lib/schema.js` | all table definitions, `migrate()`, `getMeta`/`setMeta` |
-| `lib/cards.js` | card and set helpers: third card, `isSet`, `setId`, `diffMask`, `findSets`, `hasSet` |
-| `lib/lookups.js` | fill `cards` and `sets` |
-| `lib/load.js` | parse `sync_raw` into `games` and `events` |
-| `lib/replay.js` | replay one normal-mode game in memory (no database access) |
-| `lib/derive.js` | run the replay for each game and write `finds` and `board_sets` |
-| `vendor/game.js` | unmodified copy of the site's `src/game.js` (see the main README for updating it) |
+| file             | role                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `bin/check.js`   | check that the token and user id work                                                |
+| `bin/sync.js`    | download new or recently unfinished games into `sync_raw`; record `last_sync_at`     |
+| `bin/stats.js`   | print summary stats (reads `sync_raw` directly, uses the site's `computeState`)      |
+| `bin/rebuild.js` | load, then derive; see [rebuild modes](#rebuild-modes)                               |
+| `lib/config.js`  | your user id and the site's Firebase settings                                        |
+| `lib/auth.js`    | exchange the refresh token in `data/token.json` for an id token                      |
+| `lib/paths.js`   | locate `data/` relative to the code, so commands work from any folder                |
+| `lib/db.js`      | open `data/games.db` (WAL mode, foreign keys on), run migrations, fill lookups       |
+| `lib/schema.js`  | all table definitions, `migrate()`, `getMeta`/`setMeta`                              |
+| `lib/cards.js`   | card and set helpers: third card, `isSet`, `setId`, `diffMask`, `findSets`, `hasSet` |
+| `lib/lookups.js` | fill `cards` and `sets`                                                              |
+| `lib/load.js`    | parse `sync_raw` into `games` and `events`                                           |
+| `lib/replay.js`  | replay one normal-mode game in memory (no database access)                           |
+| `lib/derive.js`  | run the replay for each game and write `finds` and `board_sets`                      |
+| `vendor/game.js` | unmodified copy of the site's `src/game.js` (see the main README for updating it)    |
 
 ## loading (`lib/load.js`)
 
@@ -85,10 +85,10 @@ only `mode = 'normal'` games are derived. other modes use different rules (bigge
 
 ## rebuild modes
 
-| command | load | derive | time on ~3,400 games |
-| --- | --- | --- | --- |
-| `npm run rebuild` | yes | drop `finds` and `board_sets`, recreate them, replay **every** normal game | ~6 s |
-| `npm run rebuild:new` | yes | replay only normal games that have events but no `finds` yet | <1 s when little changed |
+| command               | load | derive                                                                     | time on ~3,400 games     |
+| --------------------- | ---- | -------------------------------------------------------------------------- | ------------------------ |
+| `npm run rebuild`     | yes  | drop `finds` and `board_sets`, recreate them, replay **every** normal game | ~6 s                     |
+| `npm run rebuild:new` | yes  | replay only normal games that have events but no `finds` yet               | <1 s when little changed |
 
 the full rebuild:
 
@@ -105,9 +105,9 @@ one known gap: if a game's `startedAt` changed on the site while its events stay
 
 ## versions
 
-| constant | where | bump it when |
-| --- | --- | --- |
-| `SCHEMA_VERSION` | `lib/schema.js` | a table definition changes. add the migration to `migrate()` |
+| constant         | where           | bump it when                                                                                                                    |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `SCHEMA_VERSION` | `lib/schema.js` | a table definition changes. add the migration to `migrate()`                                                                    |
 | `DERIVE_VERSION` | `lib/derive.js` | the replay or derive logic changes in a way that changes rows. the next `rebuild:new` will then do a full rebuild automatically |
 
 after updating `vendor/game.js`, run `npm test`. the cross-check test compares the replay with the new copy of the site's code on all your games. if anything changed, bump `DERIVE_VERSION` and run `npm run rebuild`.

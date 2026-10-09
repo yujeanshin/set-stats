@@ -24,7 +24,10 @@ const upsert = db.prepare(`
 
 const userGames = (await read(`userGames/${UID}`)) ?? {};
 const known = new Map(
-  db.prepare("SELECT id, status FROM sync_raw").all().map((r) => [r.id, r.status])
+  db
+    .prepare("SELECT id, status FROM sync_raw")
+    .all()
+    .map((r) => [r.id, r.status]),
 );
 
 const todo = Object.entries(userGames).filter(([id, createdAt]) => {
@@ -32,7 +35,9 @@ const todo = Object.entries(userGames).filter(([id, createdAt]) => {
   return known.get(id) !== "done" && Date.now() - createdAt < DAY;
 });
 
-console.log(`${Object.keys(userGames).length} games on server, ${todo.length} to fetch`);
+console.log(
+  `${Object.keys(userGames).length} games on server, ${todo.length} to fetch`,
+);
 
 for (let i = 0; i < todo.length; i += BATCH) {
   await Promise.all(
@@ -43,8 +48,14 @@ for (let i = 0; i < todo.length; i += BATCH) {
         read(`gameData/${key}`),
       ]);
       if (!game) return;
-      upsert.run(id, createdAt, game.status, JSON.stringify(game), JSON.stringify(data));
-    })
+      upsert.run(
+        id,
+        createdAt,
+        game.status,
+        JSON.stringify(game),
+        JSON.stringify(data),
+      );
+    }),
   );
   console.log(`${Math.min(i + BATCH, todo.length)}/${todo.length}`);
 }
