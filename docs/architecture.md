@@ -45,7 +45,7 @@ that is too complex for SQL, so it runs once in JavaScript and the results are s
 | `lib/lookups.js`                | fill `cards` and `sets`                                                              |
 | `lib/load.js`                   | parse `sync_raw` into `games` and `events`                                           |
 | `lib/replay.js`                 | replay one normal-mode game in memory (no database access)                           |
-| `lib/findTimes.js`              | find times and breaks per game, for every mode, via each site's `computeState`       |
+| `lib/findTimes.js`              | find times (and their `seq`s) and breaks per game, any mode, via `computeState`      |
 | `lib/derive.js`                 | run the replay for each game and write `finds` and `board_sets`                      |
 | `vendor/game.js`                | unmodified copy of setwithforks' `src/game.js` (see the main README for updating it) |
 | `vendor/setwithfriends/util.js` | the game logic of setwithfriends' `src/util.js`, unmodified                          |

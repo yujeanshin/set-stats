@@ -24,6 +24,7 @@ the tests never write to `data/games.db` and never contact either site. each one
 | `auth.test.js`       | token renewal and `accessToken`                                          |
 | `sync.test.js`       | which games sync fetches, and restoring archived games                   |
 | `queries.test.js`    | the web UI uses my user id on each game's site                           |
+| `cardFace.test.js`   | which card digit is which color, shape, shade and number in the web UI   |
 
 ### `replay.test.js`
 
@@ -77,6 +78,14 @@ loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
 - `rebuild:new` derives only games without finds, re-derives re-synced games, and falls back to a full rebuild when `derive_version` doesn't match
 - a replay mismatch fails the rebuild and leaves `derive_version` unset
 - with `onError`, a mismatch is reported, the other games are still derived, and `rebuild:new` retries the failed one
+
+### `cardFace.test.js`
+
+checks `ui/src/cardFace.js`, the mapping the card component draws from (see [brief-v2.md](../docs/design/brief-v2.md#card-mapping-and-colors)).
+
+- all 81 cards decode to the same color, shape, shade and number indexes as the site's own `cardTraits` in `vendor/game.js`
+- the value names match upstream setwithfriends' `SetCard.js` (purple green red, squiggle oval diamond, solid empty striped, digit + 1 symbols)
+- a `diff_mask` reads in feature order
 
 ### `crosscheck.test.js`
 
