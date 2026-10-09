@@ -6,6 +6,7 @@
     "check": "node bin/check.js",
     "sync": "node bin/sync.js",
     "stats": "node bin/stats.js",
+    "ui": "node bin/ui.js",
     "rebuild": "node bin/rebuild.js",
     "rebuild:new": "node bin/rebuild.js --new",
     "test": "node --test \"test/*.test.js\"",
@@ -21,7 +22,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
