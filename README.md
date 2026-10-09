@@ -73,22 +73,46 @@ you should see `200` followed by your display name. if not, see **troubleshootin
 ## usage
 run
 ```bash
-npm run sync    # download any games you don't have yet
-npm run stats   # print your stats
+npm run sync          # download any games you don't have yet
+npm run stats         # print your stats
+npm run rebuild:new   # update the database tables with newly synced games
 ```
 the first sync will download all of your game history and may take a few minutes. subsequent syncs only fetch games played since the last sync. run them whenever you want up-to-date stats.
 
 avoid syncing while you have a game in progress. it will be saved as unfinished, and unfinished games are only rechecked and updated in the local database if you sync again within a day of when the game was created.
 
-## where is my game data?
-your games are stored in `data/games.db`, an SQLite file. it is not committed to git. to back it up, copy the file. if you delete it, the next sync downloads everything again.
+### all commands
+| command | what it does |
+| --- | --- |
+| `npm run check` | check that your token and user ID work |
+| `npm run sync` | download new games from the site |
+| `npm run stats` | print summary stats |
+| `npm run rebuild:new` | turn synced games into database tables, replaying only games that haven't been processed yet. fast; use this after every sync |
+| `npm run rebuild` | same, but rebuilds the board tables for every game from scratch (a few seconds). use it after updating the code or `vendor/game.js`, or if `rebuild:new` reports a problem |
+| `npm test` | run the tests (see [test/README.md](test/README.md)) |
 
-the downloaded JSON for each game is kept as-is in the `sync_raw` table. the `cards` and `sets` lookup tables are filled automatically whenever the database is opened.
+only `sync` and `check` contact the site. everything else works offline from your local copy.
+
+## where is my game data?
+your games are stored in `data/games.db`, an SQLite file. it is not committed to git. to back it up, copy the file (along with `games.db-wal` and `games.db-shm` if they exist), ideally while no command is running. if you delete it, the next sync downloads everything again.
+
+the database has:
+- the downloaded JSON for each game, kept as-is (`sync_raw`)
+- every game and every selection anyone made in it, for all modes (`games`, `events`)
+- lookup tables of all 81 cards and 1080 sets (`cards`, `sets`)
+- for normal-mode games, the board at every set found and every set that was available on it (`finds`, `board_sets`, and `my_finds` for just yours)
+
+see [docs/schema.md](docs/schema.md) for every table and column.
 
 to inspect directly with SQL queries, try commands like
 ```bash
-sqlite3 data/games.db "SELECT status, COUNT(*) FROM sync_raw GROUP BY status"
+sqlite3 data/games.db "SELECT mode, status, COUNT(*) FROM games GROUP BY mode, status"
 ```
+
+## documentation
+- [docs/schema.md](docs/schema.md): tables, columns and what they mean
+- [docs/architecture.md](docs/architecture.md): how data flows from the site to the tables, how games are replayed, and how rebuilds work
+- [test/README.md](test/README.md): what the tests cover and how to add more
 
 ## troubleshooting
 | what you see | possible cause |
@@ -97,6 +121,7 @@ sqlite3 data/games.db "SELECT status, COUNT(*) FROM sync_raw GROUP BY status"
 | `npm run check` prints `200 null` | the `UID` in `lib/config.js` does not match any user. recheck your profile URL. |
 | `401` or `Permission denied` | the token is not being accepted. repeat setup step 3. |
 | stats look wrong for a new game mode | the copy of the site's game logic is out of date. see **keeping up with the site** below. |
+| `rebuild` fails with `replay <game id>: ...` | the replay disagrees with the site for that game. run `npm test` and check whether `vendor/game.js` is out of date. |
 
 ## keeping up with the site
 `vendor/game.js` is a copy of the site's game logic, used to replay each game and work out which sets counted. the commit it was copied from is noted at the top of the file.
@@ -105,6 +130,8 @@ to update the copy:
 1. download the latest `src/game.js` from eltoder/setwithfriends into `vendor/game.js`.
 2. replace its first line (the import from `./util`) with the two stub functions found at the top of the current copy.
 3. update the commit hash in the comment.
+4. run `npm test`. one test replays all your games with both this project's replay and the new copy of the site's code, and fails if they disagree.
+5. run `npm run rebuild`.
 
 ## BE CONSIDERATE
 this tool reads from a database maintained by someone else, so i tried to keep its load small: it fetches each finished game once and limits how many requests run at the same time. if you modify it, keep that property. don't remove the local cache, raise the batch size by a lot, or run it in a tight loop.
