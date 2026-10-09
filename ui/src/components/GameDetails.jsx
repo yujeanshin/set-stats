@@ -1,8 +1,9 @@
 // Single game view (brief 7), shared by the full page (pages/Game.jsx) and
 // the dialog over the games list (GameDialog.jsx).
-import { Alert, Box, Stack, Typography } from "@mui/material";
+import { Alert, Box, Link, Stack, Typography } from "@mui/material";
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
+import { gameSite, gameUrl } from "../gameUrl.js";
 import FindTimesChart from "./FindTimesChart.jsx";
 import Tile from "./Tile.jsx";
 import { clock, dateTime, secs } from "../format.js";
@@ -64,6 +65,23 @@ export default function GameDetails({ id, header, titleId }) {
           {game ? dateTime(game.started_at) : error ? "Game" : "…"}
         </Typography>
         {game ? <Subtitle game={game} /> : null}
+        {game ? (
+          <Link
+            href={gameUrl(game)}
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              minHeight: 44,
+              alignSelf: "flex-start",
+              fontWeight: 600,
+            }}
+          >
+            Open on {gameSite(game).name}
+          </Link>
+        ) : null}
       </Stack>
       {error ? (
         <Alert severity="error">{error.message}</Alert>
