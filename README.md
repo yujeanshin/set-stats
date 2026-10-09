@@ -229,4 +229,6 @@ game data on the site is readable by any signed-in user, so this tool can techni
 
 game logic in `vendor` comes from [Set with Forks](https://github.com/eltoder/setwithfriends), a fork of [Set with Friends](https://github.com/ekzhang/setwithfriends) built by Eric Zhang and Cynthia Du, and from Set with Friends itself (`vendor/setwithfriends`), both used under the MIT license (see `vendor/LICENSE.txt` and `vendor/setwithfriends/LICENSE.txt`).
 
+the squiggle in the web UI's logo and favicon uses the squiggle path from Set with Friends (`public/index.html`), also under the MIT license (`vendor/setwithfriends/LICENSE.txt`).
+
 this project is not affiliated with Set with Forks, Set with Friends, Set Enterprises, Inc., or the SET® card game.
