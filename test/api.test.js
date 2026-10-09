@@ -176,6 +176,11 @@ test("games/:id: find times and tiles; unknown id is a 404", async () => {
   assert.equal(body.stats.median, 3671);
   assert.equal(body.stats.min, 1653);
   assert.equal(body.stats.max, 40569);
+  // The rest of the expected values in brief section 7.
+  assert.equal(body.modeName, "Normal");
+  assert.equal(body.durationMs, 234786);
+  assert.equal((body.stats.mean / 1000).toFixed(2), "9.39");
+  assert.equal((body.stats.stdev / 1000).toFixed(2), "11.56");
   assert.equal((await get("/games/no-such-game")).status, 404);
 });
 

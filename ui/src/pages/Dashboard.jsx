@@ -3,13 +3,14 @@ import { useApi } from "../api.js";
 import ByWindow from "../components/ByWindow.jsx";
 import Calendar from "../components/Calendar.jsx";
 import FilterBar from "../components/FilterBar.jsx";
+import GamesList from "../components/GamesList.jsx";
 import HeadlineTiles from "../components/HeadlineTiles.jsx";
 import { useFilters } from "../filters.js";
 import { localMidnightDaysAgo } from "../format.js";
 import OverTime from "../components/OverTime.jsx";
 import Positions from "../components/Positions.jsx";
 
-/** Solo tab (brief 6). Sections are added one per build step. */
+/** Solo tab (brief 6), sections top to bottom. */
 export default function Dashboard() {
   const [filters] = useFilters();
   // One request serves the tiles and the By window table.
@@ -29,6 +30,7 @@ export default function Dashboard() {
         <ByWindow summary={summary} alone={!normal} />
         {normal ? <Positions /> : null}
       </Box>
+      <GamesList />
     </Stack>
   );
 }

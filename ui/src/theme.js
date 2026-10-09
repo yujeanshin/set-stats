@@ -56,7 +56,12 @@ const theme = createTheme({
         outlined: { borderColor: colors.border, borderRadius: 10 },
       },
     },
-    MuiButton: { styleOverrides: { root: { minHeight: 44 } } },
+    MuiButton: {
+      styleOverrides: {
+        root: { minHeight: 44 },
+        outlined: { borderColor: colors.accent },
+      },
+    },
     MuiToggleButton: {
       styleOverrides: {
         root: {
