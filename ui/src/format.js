@@ -58,3 +58,15 @@ export function localMidnightDaysAgo(days) {
 /** The browser's IANA time zone, for the calendar endpoint. */
 export const localTimeZone = () =>
   Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/** Local midnight of an <input type="date"> value ("YYYY-MM-DD"), in ms. */
+export function localDayStart(isoDate) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y, m - 1, d).getTime();
+}
+
+/** Last millisecond of that local day, so an inclusive `to` covers the day. */
+export function localDayEnd(isoDate) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y, m - 1, d + 1).getTime() - 1;
+}

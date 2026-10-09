@@ -4,6 +4,7 @@ import FilterBar from "../components/FilterBar.jsx";
 import HeadlineTiles from "../components/HeadlineTiles.jsx";
 import { useFilters } from "../filters.js";
 import { localMidnightDaysAgo } from "../format.js";
+import OverTime from "../components/OverTime.jsx";
 
 /** Solo tab (brief 6). Sections are added one per build step. */
 export default function Dashboard() {
@@ -17,6 +18,7 @@ export default function Dashboard() {
     <Stack spacing={3}>
       <FilterBar />
       <HeadlineTiles summary={summary} />
+      <OverTime />
     </Stack>
   );
 }
