@@ -44,13 +44,13 @@ export default function Tile({
           <Typography
             component="span"
             sx={{
-                fontFamily: "mono",
-                fontSize: suffixSize,
-                fontWeight: 500,
-                color: "text.secondary",
-                display: "inline-block",
-                whiteSpace: "nowrap",
-              }}
+              fontFamily: "mono",
+              fontSize: suffixSize,
+              fontWeight: 500,
+              color: "text.secondary",
+              display: "inline-block",
+              whiteSpace: "nowrap",
+            }}
           >
             {" "}
             {suffix}
