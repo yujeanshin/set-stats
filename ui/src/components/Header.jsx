@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useApi } from "../api.js";
 import { relativeTime } from "../format.js";
 import { contentWidth } from "../theme.js";
+import SquiggleIcon from "./SquiggleIcon.jsx";
 
 function Logo() {
   return (
@@ -17,7 +18,7 @@ function Logo() {
         stroke="currentColor"
         strokeWidth="2.5"
       />
-      <path d="M13 6 L19 13 L13 20 L7 13 Z" fill="currentColor" />
+      <SquiggleIcon x="9" y="5" size={8} />
     </svg>
   );
 }
