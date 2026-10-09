@@ -6,7 +6,9 @@
     "check": "node bin/check.js",
     "sync": "node bin/sync.js",
     "stats": "node bin/stats.js",
-    "ui": "node bin/ui.js",
+    "ui": "vite build ui && node bin/ui.js",
+    "ui:build": "vite build ui",
+    "ui:dev": "vite ui",
     "rebuild": "node bin/rebuild.js",
     "rebuild:new": "node bin/rebuild.js --new",
     "test": "node --test \"test/*.test.js\"",
@@ -26,10 +28,20 @@
     "express": "^5.2.1"
   },
   "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@eslint/js": "^10.0.1",
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@mui/material": "^9.4.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
-    "prettier": "^3.9.9"
+    "prettier": "^3.9.9",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
+    "vite": "^8.3.4"
   },
   "allowScripts": {
     "better-sqlite3@13.0.3": true

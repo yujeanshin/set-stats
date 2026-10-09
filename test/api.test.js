@@ -56,7 +56,7 @@ async function get(path) {
 
 test("modes: solo modes with counts", async () => {
   const { body } = await get("/modes");
-  assert.deepEqual(body, [{ mode: "normal", games: 2 }]);
+  assert.deepEqual(body, [{ mode: "normal", name: "Normal", games: 2 }]);
 });
 
 test("summary: filters default to hints off, mode to most played", async () => {
