@@ -108,6 +108,21 @@ the first sync will download all of your game history and may take a few minutes
 
 avoid syncing while you have a game in progress. it will be saved as unfinished, and unfinished games are only rechecked and updated in the local database if you sync again within a day of when the game was created.
 
+### web UI
+
+```bash
+npm run ui
+```
+
+builds the web app and starts a local server at http://localhost:3000 (set `PORT` to use another port). open it in your browser for:
+
+- a solo dashboard per game mode: headline numbers, an activity calendar, pace or game time over time with a rolling mean, median or aoX, a by-window table (the same numbers as `npm run stats`), where on the board you pick cards from (normal mode), and a list of every game
+- a page per game with the time you took for each set
+
+run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
+
+to work on the UI itself, run `node bin/ui.js` in one terminal and `npm run ui:dev` in another. the second serves the app with hot reload and forwards API calls to the first.
+
 ### all commands
 
 | command               | what it does                                                                                                                                                               |
@@ -117,9 +132,10 @@ avoid syncing while you have a game in progress. it will be saved as unfinished,
 | `npm run stats`       | print summary stats                                                                                                                                                        |
 | `npm run rebuild:new` | turn synced games into database tables, replaying only games that haven't been processed yet. fast; use this after every sync                                              |
 | `npm run rebuild`     | same, but rebuilds the board tables for every game from scratch (a few seconds). use it after updating the code or `vendor/game.js`, or if `rebuild:new` reports a problem |
+| `npm run ui`          | build and start the web UI at http://localhost:3000 (see **web UI** above)                                                                                                 |
 | `npm test`            | run the tests (see [test/README.md](test/README.md))                                                                                                                       |
 
-only `sync` and `check` contact the site. everything else works offline from your local copy.
+only `sync` and `check` contact the site. everything else, the web UI included, works offline from your local copy.
 
 if you change the code, `npm run format` formats it with Prettier and `npm run lint` checks it with ESLint. GitHub Actions runs the format check, lint and tests on every pull request and every push to `main` (see `.github/workflows/ci.yml`).
 
