@@ -1,104 +1,584 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>set stats mockup: single game</title>
-<!-- Design mockup for set-stats. Static reference only: sample numbers, no behavior. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<style>
-body{margin:0}
-a{color:#800080}a:hover{color:#5c005c}
-</style>
-</head>
-<body>
-<div style="background: #fafafa; color: #1f1b24; font-family: Figtree, system-ui, sans-serif; font-size: 15px; line-height: 1.4; min-height: 700px">
-<main style="max-width: 1120px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 24px">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>set stats mockup: single game</title>
+    <!-- Design mockup for set-stats. Static reference only: sample numbers, no behavior. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+      }
+      a {
+        color: #800080;
+      }
+      a:hover {
+        color: #5c005c;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      style="
+        background: #fafafa;
+        color: #1f1b24;
+        font-family: Figtree, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.4;
+        min-height: 700px;
+      "
+    >
+      <main
+        style="
+          max-width: 1120px;
+          margin: 0 auto;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        "
+      >
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <a
+            href="dashboard.html"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              min-height: 44px;
+              align-self: flex-start;
+              font-weight: 600;
+              text-decoration: none;
+            "
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10 3 L5 8 L10 13" />
+            </svg>
+            All games
+          </a>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 700">
+            Aug 17, 2026, 12:21 PM
+          </h1>
+          <div style="color: #5b5564">
+            Normal · Solo · Done · 3:54.8 · 25 sets ·
+            <span
+              style="
+                font-family: &quot;IBM Plex Mono&quot;, monospace;
+                font-size: 14px;
+              "
+              >abandoned-tired-property</span
+            >
+          </div>
+        </div>
 
-<div style="display: flex; flex-direction: column; gap: 4px">
-<a href="dashboard.html" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; align-self: flex-start; font-weight: 600; text-decoration: none">
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 L5 8 L10 13"/></svg>
-All games
-</a>
-<h1 style="margin: 0; font-size: 26px; font-weight: 700">Aug 17, 2026, 12:21 PM</h1>
-<div style="color: #5b5564">Normal · Solo · Done · 3:54.8 · 25 sets · <span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px">abandoned-tired-property</span></div>
-</div>
+        <section
+          aria-label="Game summary"
+          style="display: flex; flex-wrap: wrap; gap: 16px"
+        >
+          <div
+            style="
+              flex: 1 1 160px;
+              background: #ffffff;
+              border: 1px solid #800080;
+              border-radius: 10px;
+              padding: 16px;
+            "
+          >
+            <div style="font-size: 13px; font-weight: 600; color: #800080">
+              Average pace
+            </div>
+            <div
+              style="
+                font-family: &quot;IBM Plex Mono&quot;, monospace;
+                font-size: 28px;
+                font-weight: 600;
+                margin-top: 6px;
+              "
+            >
+              9.4<span
+                style="font-size: 15px; font-weight: 500; color: #5b5564"
+              >
+                s / set</span
+              >
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1 1 160px;
+              background: #ffffff;
+              border: 1px solid #e4e0e8;
+              border-radius: 10px;
+              padding: 16px;
+            "
+          >
+            <div style="font-size: 13px; font-weight: 600; color: #5b5564">
+              Median pace
+            </div>
+            <div
+              style="
+                font-family: &quot;IBM Plex Mono&quot;, monospace;
+                font-size: 28px;
+                font-weight: 600;
+                margin-top: 6px;
+              "
+            >
+              3.7<span
+                style="font-size: 15px; font-weight: 500; color: #5b5564"
+              >
+                s / set</span
+              >
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1 1 160px;
+              background: #ffffff;
+              border: 1px solid #e4e0e8;
+              border-radius: 10px;
+              padding: 16px;
+            "
+          >
+            <div style="font-size: 13px; font-weight: 600; color: #5b5564">
+              Std dev of pace
+            </div>
+            <div
+              style="
+                font-family: &quot;IBM Plex Mono&quot;, monospace;
+                font-size: 28px;
+                font-weight: 600;
+                margin-top: 6px;
+              "
+            >
+              11.6<span
+                style="font-size: 15px; font-weight: 500; color: #5b5564"
+              >
+                s</span
+              >
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1 1 160px;
+              background: #ffffff;
+              border: 1px solid #e4e0e8;
+              border-radius: 10px;
+              padding: 16px;
+            "
+          >
+            <div style="font-size: 13px; font-weight: 600; color: #5b5564">
+              Range of find times
+            </div>
+            <div
+              style="
+                font-family: &quot;IBM Plex Mono&quot;, monospace;
+                font-size: 28px;
+                font-weight: 600;
+                margin-top: 6px;
+              "
+            >
+              1.7<span
+                style="font-size: 15px; font-weight: 500; color: #5b5564"
+              >
+                to </span
+              >40.6<span
+                style="font-size: 15px; font-weight: 500; color: #5b5564"
+              >
+                s</span
+              >
+            </div>
+          </div>
+        </section>
 
-<section aria-label="Game summary" style="display: flex; flex-wrap: wrap; gap: 16px">
-<div style="flex: 1 1 160px; background: #ffffff; border: 1px solid #800080; border-radius: 10px; padding: 16px">
-<div style="font-size: 13px; font-weight: 600; color: #800080">Average pace</div>
-<div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; margin-top: 6px">9.4<span style="font-size: 15px; font-weight: 500; color: #5b5564"> s / set</span></div>
-</div>
-<div style="flex: 1 1 160px; background: #ffffff; border: 1px solid #e4e0e8; border-radius: 10px; padding: 16px">
-<div style="font-size: 13px; font-weight: 600; color: #5b5564">Median pace</div>
-<div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; margin-top: 6px">3.7<span style="font-size: 15px; font-weight: 500; color: #5b5564"> s / set</span></div>
-</div>
-<div style="flex: 1 1 160px; background: #ffffff; border: 1px solid #e4e0e8; border-radius: 10px; padding: 16px">
-<div style="font-size: 13px; font-weight: 600; color: #5b5564">Std dev of pace</div>
-<div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; margin-top: 6px">11.6<span style="font-size: 15px; font-weight: 500; color: #5b5564"> s</span></div>
-</div>
-<div style="flex: 1 1 160px; background: #ffffff; border: 1px solid #e4e0e8; border-radius: 10px; padding: 16px">
-<div style="font-size: 13px; font-weight: 600; color: #5b5564">Range of find times</div>
-<div style="font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; margin-top: 6px">1.7<span style="font-size: 15px; font-weight: 500; color: #5b5564"> to </span>40.6<span style="font-size: 15px; font-weight: 500; color: #5b5564"> s</span></div>
-</div>
-</section>
-
-<section aria-label="Time per find" style="background: #ffffff; border: 1px solid #e4e0e8; border-radius: 10px; padding: 20px">
-<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px">
-<h2 style="margin: 0; font-size: 17px; font-weight: 700">Time per find</h2>
-<div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #5b5564"><span style="width: 18px; border-top: 2px dashed #1f1b24"></span>Median, 3.7 s</div>
-</div>
-<div style="overflow-x: auto; padding-top: 48px">
-<div style="display: flex; gap: 10px; min-width: 640px">
-<div style="display: flex; flex-direction: column-reverse; justify-content: space-between; height: 207px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5b5564; text-align: right">
-<span>0s</span><span>10s</span><span>20s</span><span>30s</span><span>40s</span>
-</div>
-<div style="flex: 1; min-width: 0">
-<div style="position: relative; height: 200px; border-bottom: 1px solid #cfc9d6">
-<div style="position: absolute; left: 0; right: 0; bottom: 49px; border-top: 1px solid #e4e0e8"></div>
-<div style="position: absolute; left: 0; right: 0; bottom: 98px; border-top: 1px solid #e4e0e8"></div>
-<div style="position: absolute; left: 0; right: 0; bottom: 148px; border-top: 1px solid #e4e0e8"></div>
-<div style="position: absolute; left: 0; right: 0; bottom: 197px; border-top: 1px solid #e4e0e8"></div>
-<div style="position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 6px">
-<div style="flex: 1; height: 13px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 169px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 8px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 24px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 37px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 14px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 11px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 15px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 176px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 9px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 8px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 35px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 12px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 40px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 16px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 64px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 125px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 18px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 10px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 18px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 45px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 200px; background: #5c005c; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 41px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 9px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-<div style="flex: 1; height: 37px; background: #a04da0; border-radius: 3px 3px 0 0"></div>
-</div>
-<div style="position: absolute; left: 0; right: 0; bottom: 18px; border-top: 2px dashed #1f1b24"></div>
-<div role="tooltip" style="position: absolute; left: 86%; bottom: 208px; transform: translateX(-50%); padding: 6px 10px; border-radius: 6px; background: #1f1b24; color: #ffffff; font-size: 13px; white-space: nowrap">Find 22 · <span style="font-family: 'IBM Plex Mono', monospace">40.6 s</span></div>
-</div>
-<div style="display: flex; gap: 6px; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5b5564; text-align: center">
-<span style="flex: 1">1</span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1">5</span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1">10</span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1">15</span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1">20</span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1"></span><span style="flex: 1">25</span>
-</div>
-<div style="margin-top: 6px; text-align: center; font-size: 13px; color: #5b5564">Find number</div>
-</div>
-</div>
-</div>
-</section>
-
-</main>
-</div>
-</body>
+        <section
+          aria-label="Time per find"
+          style="
+            background: #ffffff;
+            border: 1px solid #e4e0e8;
+            border-radius: 10px;
+            padding: 20px;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              flex-wrap: wrap;
+              align-items: baseline;
+              justify-content: space-between;
+              gap: 12px;
+            "
+          >
+            <h2 style="margin: 0; font-size: 17px; font-weight: 700">
+              Time per find
+            </h2>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 13px;
+                color: #5b5564;
+              "
+            >
+              <span style="width: 18px; border-top: 2px dashed #1f1b24"></span
+              >Median, 3.7 s
+            </div>
+          </div>
+          <div style="overflow-x: auto; padding-top: 48px">
+            <div style="display: flex; gap: 10px; min-width: 640px">
+              <div
+                style="
+                  display: flex;
+                  flex-direction: column-reverse;
+                  justify-content: space-between;
+                  height: 207px;
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                  font-size: 12px;
+                  color: #5b5564;
+                  text-align: right;
+                "
+              >
+                <span>0s</span><span>10s</span><span>20s</span><span>30s</span
+                ><span>40s</span>
+              </div>
+              <div style="flex: 1; min-width: 0">
+                <div
+                  style="
+                    position: relative;
+                    height: 200px;
+                    border-bottom: 1px solid #cfc9d6;
+                  "
+                >
+                  <div
+                    style="
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      bottom: 49px;
+                      border-top: 1px solid #e4e0e8;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      bottom: 98px;
+                      border-top: 1px solid #e4e0e8;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      bottom: 148px;
+                      border-top: 1px solid #e4e0e8;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      bottom: 197px;
+                      border-top: 1px solid #e4e0e8;
+                    "
+                  ></div>
+                  <div
+                    style="
+                      position: absolute;
+                      inset: 0;
+                      display: flex;
+                      align-items: flex-end;
+                      gap: 6px;
+                    "
+                  >
+                    <div
+                      style="
+                        flex: 1;
+                        height: 13px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 169px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 8px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 24px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 37px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 14px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 11px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 15px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 176px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 9px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 8px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 35px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 12px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 40px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 16px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 64px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 125px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 18px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 10px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 18px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 45px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 200px;
+                        background: #5c005c;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 41px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 9px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                    <div
+                      style="
+                        flex: 1;
+                        height: 37px;
+                        background: #a04da0;
+                        border-radius: 3px 3px 0 0;
+                      "
+                    ></div>
+                  </div>
+                  <div
+                    style="
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      bottom: 18px;
+                      border-top: 2px dashed #1f1b24;
+                    "
+                  ></div>
+                  <div
+                    role="tooltip"
+                    style="
+                      position: absolute;
+                      left: 86%;
+                      bottom: 208px;
+                      transform: translateX(-50%);
+                      padding: 6px 10px;
+                      border-radius: 6px;
+                      background: #1f1b24;
+                      color: #ffffff;
+                      font-size: 13px;
+                      white-space: nowrap;
+                    "
+                  >
+                    Find 22 ·
+                    <span
+                      style="font-family: &quot;IBM Plex Mono&quot;, monospace"
+                      >40.6 s</span
+                    >
+                  </div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 6px;
+                    margin-top: 8px;
+                    font-family: &quot;IBM Plex Mono&quot;, monospace;
+                    font-size: 12px;
+                    color: #5b5564;
+                    text-align: center;
+                  "
+                >
+                  <span style="flex: 1">1</span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1">5</span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1">10</span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1">15</span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1">20</span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1"></span><span style="flex: 1"></span
+                  ><span style="flex: 1">25</span>
+                </div>
+                <div
+                  style="
+                    margin-top: 6px;
+                    text-align: center;
+                    font-size: 13px;
+                    color: #5b5564;
+                  "
+                >
+                  Find number
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
 </html>

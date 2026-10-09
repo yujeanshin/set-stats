@@ -104,12 +104,12 @@ See `mockups/dashboard.png`. Sections top to bottom:
 
 **6.3 Headline tiles (four).** These ignore the graph's date range.
 
-| Tile | Definition |
-| --- | --- |
-| Games finished / started | counts in the selected mode |
-| Fastest game | minimum `duration_ms` among finished games |
-| Average pace, last 5 games | mean of the 5 games' `pace_ms`, ± the standard deviation across those 5 per-game values (not across individual finds) |
-| Average game time, last 5 games | mean ± standard deviation of `duration_ms` over the last 5 finished games |
+| Tile                            | Definition                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Games finished / started        | counts in the selected mode                                                                                           |
+| Fastest game                    | minimum `duration_ms` among finished games                                                                            |
+| Average pace, last 5 games      | mean of the 5 games' `pace_ms`, ± the standard deviation across those 5 per-game values (not across individual finds) |
+| Average game time, last 5 games | mean ± standard deviation of `duration_ms` over the last 5 finished games                                             |
 
 **6.4 Calendar.** GitHub-style grid, one cell per local day, colored by games started that day (5 levels). Headline: "N games in the past year". Year selector on the right, under the legend: "Past year" plus each calendar year that has games. Hovering a cell shows the date and count.
 
@@ -143,18 +143,18 @@ Expected values for `abandoned-tired-property`, for a test: 25 finds, duration 2
 
 Light theme only. Inspired by the Set with Forks site (its `#fafafa` page background and card purple) but not a copy. Exact values are in the mockup HTML files.
 
-| Token | Value |
-| --- | --- |
-| Page background | `#fafafa` |
-| Surface (cards) | `#ffffff`, 1px border `#e4e0e8`, radius 10px |
-| Control border | `#cfc9d6`, radius 8px |
-| Text | `#1f1b24` |
-| Muted text | `#5b5564` |
-| Accent | `#800080` (hover/dark `#5c005c`) |
-| Accent scale, light to dark | `#ebe8ee`, `#dcc3dc`, `#c08ac0`, `#a04da0`, `#800080` |
-| Record marker | `#b25c00` outline, white fill |
-| Text font | Figtree (400, 500, 600, 700) |
-| Number font | IBM Plex Mono (400, 500, 600) for every statistic and axis label |
+| Token                       | Value                                                            |
+| --------------------------- | ---------------------------------------------------------------- |
+| Page background             | `#fafafa`                                                        |
+| Surface (cards)             | `#ffffff`, 1px border `#e4e0e8`, radius 10px                     |
+| Control border              | `#cfc9d6`, radius 8px                                            |
+| Text                        | `#1f1b24`                                                        |
+| Muted text                  | `#5b5564`                                                        |
+| Accent                      | `#800080` (hover/dark `#5c005c`)                                 |
+| Accent scale, light to dark | `#ebe8ee`, `#dcc3dc`, `#c08ac0`, `#a04da0`, `#800080`            |
+| Record marker               | `#b25c00` outline, white fill                                    |
+| Text font                   | Figtree (400, 500, 600, 700)                                     |
+| Number font                 | IBM Plex Mono (400, 500, 600) for every statistic and axis label |
 
 - Content width 1120px max, 24px gaps between cards.
 - Controls at least 44px tall. Real buttons, selects, inputs and labels.
