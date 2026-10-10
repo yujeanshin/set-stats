@@ -50,7 +50,31 @@ export const dateTime = (ms) =>
 export const dateOnly = (ms) =>
   new Date(ms).toLocaleDateString(undefined, { dateStyle: "medium" });
 
-/** "2 hours ago", "3 days ago", for the Last synced label. */
+/**
+ * "2:41 PM" for a time today, "Oct 8, 2:41 PM" on another day this year,
+ * "Dec 30, 2025, 2:41 PM" in another year. For the header's Data updated.
+ */
+export function shortWhen(ms, now = Date.now()) {
+  const d = new Date(ms);
+  const today = new Date(now);
+  const time = d.toLocaleTimeString(undefined, { timeStyle: "short" });
+  if (d.toDateString() === today.toDateString()) return time;
+  const date = d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+  return `${date}, ${time}`;
+}
+
+/** "Aug 17, 2026, 12:21:05 PM", to the second, for tooltips. */
+export const fullDateTime = (ms) =>
+  new Date(ms).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
+
+/** "2 hours ago", "3 days ago", for the header's update times. */
 export function relativeTime(ms, now = Date.now()) {
   if (ms == null) return "never";
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });

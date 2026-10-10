@@ -5,6 +5,7 @@ import { createApi } from "../lib/api.js";
 import { rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
 import { Queries } from "../lib/queries.js";
+import { setMeta } from "../lib/schema.js";
 import {
   EXPECTED,
   fixtureRaw,
@@ -12,6 +13,7 @@ import {
   insertRaw,
   memoryDb,
   OPENING_BOARD,
+  USER,
 } from "./fixture.js";
 
 const DAY = 86_400_000;
@@ -86,6 +88,18 @@ async function get(path) {
 test("modes: solo modes with counts", async () => {
   const { body } = await get("/modes");
   assert.deepEqual(body, [{ mode: "normal", name: "Normal", games: 2 }]);
+});
+
+test("meta: last sync and last rebuild times, null until written", async () => {
+  const before = (await get("/meta")).body;
+  assert.equal(before.last_sync_at, null);
+  assert.equal(before.last_rebuild_at, null);
+  setMeta(db, "last_sync_at", 1786983000000);
+  setMeta(db, "last_rebuild_at", 1786983600000);
+  const { body } = await get("/meta");
+  assert.equal(body.last_sync_at, 1786983000000);
+  assert.equal(body.last_rebuild_at, 1786983600000);
+  assert.equal(body.my_user_id, USER);
 });
 
 test("summary: filters default to hints off, mode to most played", async () => {
