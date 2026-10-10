@@ -1,7 +1,8 @@
 // Set types tab (brief-v2 part 2): which kinds of sets I pick more or less
 // often than chance, and how fast. Normal mode, solo games, my finds only.
 // Broad to specific: the 4 n_diff groups, blind spots, the 15 patterns
-// (click one for recent examples), then sets by how many cards are fresh.
+// (hover one for its latest finds, click to expand it with more), then sets
+// by how many cards are fresh.
 import { Alert, Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import { useApi } from "../api.js";
@@ -11,7 +12,7 @@ import FilterBar from "../components/FilterBar.jsx";
 import InfoTip from "../components/InfoTip.jsx";
 import RangeControls, { rangeParams } from "../components/RangeControls.jsx";
 import Tile from "../components/Tile.jsx";
-import TypeExamples from "../components/TypeExamples.jsx";
+import { ExampleFinds, ExamplePreview } from "../components/TypeExamples.jsx";
 import TypeTable from "../components/TypeTable.jsx";
 import { DEFINITIONS, INSTANT_GAP_MS } from "../definitions.js";
 import { useFilters, useTypeRange } from "../filters.js";
@@ -110,16 +111,18 @@ function BlindSpots({ keys, patterns, minExpected, onSelect }) {
                   <Box
                     component="span"
                     sx={{
+                      display: "flex",
+                      flexDirection: "column",
                       fontFamily: "mono",
                       fontSize: 13,
                       fontWeight: 500,
                       color: "text.secondary",
                     }}
                   >
-                    ratio {ratioText(r.ratio)} ({intervalText(r.low, r.high)}){" "}
-                    <Box component="span" sx={{ whiteSpace: "nowrap" }}>
-                      · E {countText(r.expected)}
-                    </Box>
+                    <span>
+                      ratio {ratioText(r.ratio)} ({intervalText(r.low, r.high)})
+                    </span>
+                    <span>E {countText(r.expected)}</span>
                   </Box>
                 </Box>
               </Button>
@@ -131,20 +134,48 @@ function BlindSpots({ keys, patterns, minExpected, onSelect }) {
   );
 }
 
-/** The first column of the pattern table: marks, label, and a button to show examples. */
+function Chevron({ open }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+      style={{
+        flexShrink: 0,
+        transform: open ? "rotate(90deg)" : "none",
+        transition: "transform 120ms",
+      }}
+    >
+      <path
+        d="M4 2 L8 6 L4 10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The first column of the pattern table: a chevron, the marks and the
+ * label, as a button that opens the row (the row's click does the work).
+ */
 const patternColumn = {
   label: "Pattern",
   info: DEFINITIONS.diffMarks,
-  render: (r, selected) => (
+  render: (r, open) => (
     <Box
       component="button"
       type="button"
-      aria-pressed={selected}
-      aria-label={`${maskLabel(r.key)}: ${selected ? "hide" : "show"} recent finds`}
+      aria-expanded={open}
+      aria-label={`${maskLabel(r.key)}: ${open ? "hide" : "show"} recent finds`}
       sx={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 1.25,
+        gap: 1,
         minHeight: 40,
         p: 0,
         border: 0,
@@ -155,6 +186,7 @@ const patternColumn = {
         textAlign: "left",
       }}
     >
+      <Chevron open={open} />
       <DiffMarks mask={r.key} />
       {maskLabel(r.key)}
     </Box>
@@ -187,17 +219,23 @@ const N_DIFF_GROUPS = [1, 2, 3, 4].map((n) => ({
 export default function Types() {
   const [filters] = useFilters();
   const [range, setRange] = useTypeRange();
-  const [selected, setSelected] = useState(null);
+  const [expanded, setExpanded] = useState(null);
   // mode is always normal here; leave it out so the request is the same
   // whichever mode the dashboard had selected.
   const params = { ...filters, mode: undefined, ...rangeParams(range) };
   const { data, error } = useApi("/types", params);
   const ready = data && !data.needsRebuild;
-  // A blind spot opens its examples under the pattern table.
-  const select = (key) => {
-    setSelected(key);
+  // Every pattern's latest finds in one request, once the tables are in, so
+  // hovering a row shows them without waiting. Cached like any response.
+  const examplesApi = useApi(ready ? "/types/examples" : null, params);
+  const examples = examplesApi.data?.examples;
+  // undefined while loading; [] for a pattern with no finds in scope.
+  const findsOf = (key) => (examples ? (examples[key] ?? []) : undefined);
+  // A blind spot opens its row in the table and scrolls to it.
+  const openPattern = (key) => {
+    setExpanded(key);
     document
-      .getElementById("patterns")
+      .getElementById(`pattern-${key}`)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   return (
@@ -241,18 +279,14 @@ export default function Types() {
             keys={data.blindSpots}
             patterns={data.patterns}
             minExpected={data.minExpected}
-            onSelect={select}
+            onSelect={openPattern}
           />
-          <Paper
-            component="section"
-            aria-label="Patterns"
-            id="patterns"
-            sx={{ p: 2.5, scrollMarginTop: 16 }}
-          >
+          <Paper component="section" aria-label="Patterns" sx={{ p: 2.5 }}>
             <Heading>All 15 patterns</Heading>
             <Typography variant="caption" component="p" sx={{ mt: 0.5 }}>
-              Grouped by how many features differ. Click a pattern for recent
-              finds of it. Greyed rows have Expected under {data.minExpected}.
+              Grouped by how many features differ. Hover a pattern for its
+              latest finds; click it for more, each opening its game at that
+              find. Greyed rows have Expected under {data.minExpected}.
             </Typography>
             <TypeTable
               label="Patterns"
@@ -260,10 +294,12 @@ export default function Types() {
               first={patternColumn}
               groups={N_DIFF_GROUPS}
               group={(r) => r.nDiff}
-              onSelect={setSelected}
-              selected={selected}
+              expanded={expanded}
+              onToggle={setExpanded}
+              preview={(r) => <ExamplePreview finds={findsOf(r.key)} />}
+              renderExpanded={(r) => <ExampleFinds finds={findsOf(r.key)} />}
+              rowId={(r) => `pattern-${r.key}`}
             />
-            {selected ? <TypeExamples mask={selected} params={params} /> : null}
           </Paper>
           <Paper component="section" aria-label="Set after set" sx={{ p: 2.5 }}>
             <Heading info={DEFINITIONS.nFreshGroup} label="fresh cards">

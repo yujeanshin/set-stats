@@ -385,31 +385,40 @@ test("types: says to rebuild until the saved tables are current", async () => {
   assert.equal(body.patterns, undefined);
 });
 
-test("types/examples: my latest finds of one pattern, newest game first", async () => {
+test("types/examples: my latest finds of every pattern, newest game first", async () => {
   const all = (await get("/types?hintsOff=0")).body;
-  // A pattern I took in both games.
-  const both = (await get(`/games/${SECOND}/finds`)).body.finds.map(
-    (f) => f.sets[0].diff_mask,
+  const { body } = await get("/types/examples?hintsOff=0");
+  // One list per pattern I took, up to 6 each.
+  const taken = all.patterns.filter((p) => p.picks > 0);
+  assert.deepEqual(
+    Object.keys(body.examples).sort(),
+    taken.map((p) => p.key).sort(),
   );
-  const mask = all.patterns.find((p) => both.includes(p.key) && p.picks > 1);
-  const { body } = await get(`/types/examples?hintsOff=0&mask=${mask.key}`);
-  assert.equal(body.mask, mask.key);
-  assert.equal(body.finds.length, Math.min(6, mask.picks));
-  assert.equal(body.finds[0].game_id, SECOND);
-  for (const [i, f] of body.finds.entries()) {
+  for (const p of taken)
+    assert.equal(body.examples[p.key].length, Math.min(6, p.picks), p.key);
+
+  // A pattern I took in both games: the second (newer) game comes first.
+  const second = (await get(`/games/${SECOND}/finds`)).body.finds;
+  const mask = taken.find(
+    (p) => p.picks > 1 && second.some((f) => f.sets[0].diff_mask === p.key),
+  ).key;
+  const finds = body.examples[mask];
+  assert.equal(finds[0].game_id, SECOND);
+  for (const [i, f] of finds.entries()) {
     assert.equal(f.cards.length, 3);
-    if (i && f.game_id === body.finds[i - 1].game_id)
-      assert.ok(f.seq < body.finds[i - 1].seq, "latest find first");
+    if (i && f.game_id === finds[i - 1].game_id)
+      assert.ok(f.seq < finds[i - 1].seq, "latest find first");
   }
   // The cards are the set I took at that find.
-  const finds = (await get(`/games/${body.finds[0].game_id}/finds`)).body;
-  const find = finds.finds.find((f) => f.seq === body.finds[0].seq);
-  assert.deepEqual(body.finds[0].cards, find.sets[0].cards);
-  assert.equal(body.finds[0].elapsed_ms, find.elapsed_ms);
+  const find = second.find((f) => f.seq === finds[0].seq);
+  assert.deepEqual(finds[0].cards, find.sets[0].cards);
+  assert.equal(finds[0].elapsed_ms, find.elapsed_ms);
 
   // Hints off by default: only the fixture game.
-  const off = (await get(`/types/examples?mask=${mask.key}`)).body;
-  assert.ok(off.finds.every((f) => f.game_id === GAME.game_id));
-  assert.equal((await get("/types/examples?mask=0000")).status, 400);
-  assert.equal((await get("/types/examples")).status, 400);
+  const off = (await get("/types/examples")).body.examples;
+  assert.ok(
+    Object.values(off)
+      .flat()
+      .every((f) => f.game_id === GAME.game_id),
+  );
 });

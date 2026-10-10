@@ -2,7 +2,8 @@
 // interval bar, Take rate when present (optional) and Median find time (n).
 // Sortable by every column; with groups, rows are sorted within each group
 // so the grouping stays. Rows with Expected under MIN_EXPECTED are greyed,
-// with the reason in a tooltip.
+// with the reason in a tooltip. Optionally, hovering a row previews it in
+// that tooltip and clicking expands it in place, right under the row.
 import {
   Box,
   Table,
@@ -13,7 +14,7 @@ import {
   TableSortLabel,
   Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { DEFINITIONS } from "../definitions.js";
 import { countText, pctText, ratioText, secs } from "../format.js";
 import { colors } from "../theme.js";
@@ -65,23 +66,43 @@ function compare(value, dir) {
   };
 }
 
-function Row({ row, first, takeRate, onSelect, selected }) {
+function Row({
+  row,
+  first,
+  takeRate,
+  preview,
+  expandable,
+  expanded,
+  onToggle,
+  renderExpanded,
+  rowId,
+  nCols,
+}) {
   const muted = row.lowData;
-  const isSelected = selected === row.key;
+  const open = expanded === row.key;
+  // One tooltip per row: the preview (until the row is open, when it would
+  // repeat what is shown), then the low-data note.
+  const tip = [
+    expandable && !open ? preview?.(row) : null,
+    muted ? DEFINITIONS.lowData : null,
+  ].filter(Boolean);
   const cells = (
     <TableRow
-      hover={!!onSelect}
-      selected={isSelected}
-      onClick={
-        onSelect ? () => onSelect(isSelected ? null : row.key) : undefined
-      }
+      id={rowId?.(row)}
+      hover={expandable}
+      selected={open}
+      onClick={expandable ? () => onToggle(open ? null : row.key) : undefined}
       sx={{
-        cursor: onSelect ? "pointer" : "default",
-        "& td": { color: muted ? "text.secondary" : "text.primary" },
+        cursor: expandable ? "pointer" : "default",
+        scrollMarginTop: 16,
+        "& td": {
+          color: muted ? "text.secondary" : "text.primary",
+          ...(open ? { borderBottom: 0 } : {}),
+        },
         "&.Mui-selected, &.Mui-selected:hover": { bgcolor: colors.scale[0] },
       }}
     >
-      <TableCell sx={{ py: 0.5 }}>{first.render(row, isSelected)}</TableCell>
+      <TableCell sx={{ py: 0.5 }}>{first.render(row, open)}</TableCell>
       <TableCell sx={num}>{countText(row.picks)}</TableCell>
       <TableCell sx={num}>{countText(row.expected, 1)}</TableCell>
       <TableCell sx={{ ...num, whiteSpace: "nowrap" }}>
@@ -109,12 +130,41 @@ function Row({ row, first, takeRate, onSelect, selected }) {
       </TableCell>
     </TableRow>
   );
-  return muted ? (
-    <Tooltip title={DEFINITIONS.lowData} placement="top-start" describeChild>
-      {cells}
-    </Tooltip>
-  ) : (
-    cells
+  return (
+    <>
+      {tip.length ? (
+        <Tooltip
+          title={
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {tip.map((t, i) => (
+                <Fragment key={i}>{t}</Fragment>
+              ))}
+            </Box>
+          }
+          followCursor
+          placement="bottom-start"
+          enterDelay={150}
+          enterNextDelay={50}
+          describeChild
+        >
+          {cells}
+        </Tooltip>
+      ) : (
+        cells
+      )}
+      {open ? (
+        <TableRow
+          sx={{
+            bgcolor: colors.scale[0],
+            "&:hover": { bgcolor: colors.scale[0] },
+          }}
+        >
+          <TableCell colSpan={nCols} sx={{ pt: 0.5, pb: 2 }}>
+            {renderExpanded(row)}
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
   );
 }
 
@@ -122,7 +172,9 @@ function Row({ row, first, takeRate, onSelect, selected }) {
  * rows: from /api/types, each with a key. first: the first column, as
  * { label, render(row, selected), info? }; it sorts in the given order.
  * groups: optional [{ key, label }], with group(row) naming a row's group.
- * takeRate: show that column. onSelect(key | null), selected: clickable rows.
+ * takeRate: show that column. Expandable rows: expanded (a key or null),
+ * onToggle(key | null), renderExpanded(row) for the row under it, and
+ * optionally preview(row) for the hover tooltip and rowId(row) for an id.
  */
 export default function TypeTable({
   rows,
@@ -130,8 +182,11 @@ export default function TypeTable({
   groups,
   group,
   takeRate = true,
-  onSelect,
-  selected,
+  expanded = null,
+  onToggle,
+  renderExpanded,
+  preview,
+  rowId,
   label,
 }) {
   const [sort, setSort] = useState({ id: "order", dir: "asc" });
@@ -160,7 +215,17 @@ export default function TypeTable({
       {info ? <InfoTip title={info} label={text.toLowerCase()} /> : null}
     </Box>
   );
-  const rowProps = { first, takeRate, onSelect, selected };
+  const rowProps = {
+    first,
+    takeRate,
+    preview,
+    expandable: !!onToggle,
+    expanded,
+    onToggle,
+    renderExpanded,
+    rowId,
+    nCols: columns.length + 1,
+  };
   return (
     <Box sx={{ overflowX: "auto" }}>
       <Table size="small" aria-label={label} sx={{ minWidth: 680 }}>

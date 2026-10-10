@@ -182,3 +182,43 @@ test("set types: over a full partition, total E = total O = finds", () => {
   assert.equal(sum("fresh", "picks"), 24);
   assert.equal(sum("fresh", "expected").toFixed(9), "24.000000000");
 });
+
+test("set types: examples read in small batches match one big batch", () => {
+  // Two copies of the fixture a day apart; a batch of 1 reads them apart.
+  const db = memoryDb();
+  const raw = fixtureRaw();
+  insertRaw(db, raw);
+  const game = JSON.parse(raw.game_json);
+  const data = JSON.parse(raw.data_json);
+  const DAY = 86_400_000;
+  insertRaw(db, {
+    ...raw,
+    id: "next-day",
+    created_at: raw.created_at + DAY,
+    game_json: JSON.stringify({
+      ...game,
+      startedAt: game.startedAt + DAY,
+      endedAt: game.endedAt + DAY,
+    }),
+    data_json: JSON.stringify({
+      seed: data.seed,
+      events: Object.fromEntries(
+        Object.entries(data.events).map(([k, e]) => [
+          k,
+          { ...e, time: e.time + DAY },
+        ]),
+      ),
+    }),
+  });
+  loadAll(db);
+  rebuildDerived(db);
+  const q = new Queries(db);
+  const ids = [GAME.game_id, "next-day"]; // oldest first
+  const whole = q.typeExamples(ids, 6, 100);
+  assert.deepEqual(q.typeExamples(ids, 6, 1), whole);
+  // The newer game's finds come first; a limit of 1 keeps only its latest.
+  for (const finds of Object.values(whole))
+    assert.equal(finds[0].game_id, "next-day");
+  for (const finds of Object.values(q.typeExamples(ids, 1, 1)))
+    assert.equal(finds.length, 1);
+});
