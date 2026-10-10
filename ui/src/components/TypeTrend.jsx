@@ -1,9 +1,9 @@
 // The Set types trend (brief-v3 item 8): the 4 n_diff groups over the
 // page's games, in buckets of equal numbers of games, oldest to newest.
-// The toggle switches the y axis between the Ratio (log scale, with its 95%
-// interval as a band and a line at 1.0) and the median find time. Points
-// are evenly spaced; each line is labelled at its end and has its own
-// marker shape, so the lines don't depend on color. The chart is one tab
+// The toggle switches the y axis between the median find time (the
+// default) and the Ratio (log scale, with its 95% interval as a band and a
+// line at 1.0). Points are evenly spaced; each line is labelled at its end
+// and has its own marker shape, so the lines don't depend on color. The chart is one tab
 // stop: the arrow keys step through the points, showing the tooltip and
 // reading it out.
 import {
@@ -413,7 +413,7 @@ const visuallyHidden = {
 
 /** params: the Set types page's filters and Range, as /types takes them. */
 export default function TypeTrend({ params, dropBreaks }) {
-  const [view, setView] = useState("ratio"); // "ratio" | "time"
+  const [view, setView] = useState("time"); // "time" | "ratio"
   const res = useApi("/types/trend", params);
   const data = res.data?.needsRebuild ? null : res.data;
   const points = data?.points ?? [];
@@ -438,8 +438,8 @@ export default function TypeTrend({ params, dropBreaks }) {
           onChange={(e, v) => v && setView(v)}
           aria-label="Measure"
         >
-          <ToggleButton value="ratio">Ratio</ToggleButton>
           <ToggleButton value="time">Find time</ToggleButton>
+          <ToggleButton value="ratio">Ratio</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
       <Typography variant="caption" component="p">
