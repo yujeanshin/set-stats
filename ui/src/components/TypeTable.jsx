@@ -1,5 +1,5 @@
 // One table of set types (brief-v2 part 2): Picks, Expected, Ratio with its
-// interval bar, Take rate when present (optional) and Median find time (n).
+// interval bar, and Median find time (n).
 // Sortable by every column; with groups, rows are sorted within each group
 // so the grouping stays. Rows with Expected under MIN_EXPECTED are greyed,
 // with the reason in a tooltip. Optionally, hovering a row previews it in
@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { Fragment, useState } from "react";
 import { DEFINITIONS } from "../definitions.js";
-import { countText, pctText, ratioText, secs } from "../format.js";
+import { countText, ratioText, secs } from "../format.js";
 import { colors } from "../theme.js";
 import InfoTip from "./InfoTip.jsx";
 import RatioBar from "./RatioBar.jsx";
@@ -43,12 +43,6 @@ const COLUMNS = [
     value: (r) => r.ratio,
   },
   {
-    id: "takeRate",
-    label: "Take rate when present",
-    info: DEFINITIONS.takeRate,
-    value: (r) => r.takeRate,
-  },
-  {
     id: "medianMs",
     label: "Median find time (n)",
     info: DEFINITIONS.typeMedian,
@@ -69,7 +63,6 @@ function compare(value, dir) {
 function Row({
   row,
   first,
-  takeRate,
   preview,
   expandable,
   expanded,
@@ -119,9 +112,6 @@ function Row({
           />
         </Box>
       </TableCell>
-      {takeRate ? (
-        <TableCell sx={num}>{pctText(row.takeRate)}</TableCell>
-      ) : null}
       <TableCell sx={{ ...num, whiteSpace: "nowrap" }}>
         {row.medianMs == null ? "–" : `${secs(row.medianMs)} s`}
         <Box component="span" sx={{ color: "text.secondary", ml: 0.75 }}>
@@ -172,7 +162,7 @@ function Row({
  * rows: from /api/types, each with a key. first: the first column, as
  * { label, render(row, selected), info? }; it sorts in the given order.
  * groups: optional [{ key, label }], with group(row) naming a row's group.
- * takeRate: show that column. Expandable rows: expanded (a key or null),
+ * Expandable rows: expanded (a key or null),
  * onToggle(key | null), renderExpanded(row) for the row under it, and
  * optionally preview(row) for the hover tooltip and rowId(row) for an id.
  */
@@ -181,7 +171,6 @@ export default function TypeTable({
   first,
   groups,
   group,
-  takeRate = true,
   expanded = null,
   onToggle,
   renderExpanded,
@@ -190,12 +179,11 @@ export default function TypeTable({
   label,
 }) {
   const [sort, setSort] = useState({ id: "order", dir: "asc" });
-  const columns = COLUMNS.filter((c) => takeRate || c.id !== "takeRate");
   const order = new Map(rows.map((r, i) => [r.key, i]));
   const value =
     sort.id === "order"
       ? (r) => order.get(r.key)
-      : columns.find((c) => c.id === sort.id).value;
+      : COLUMNS.find((c) => c.id === sort.id).value;
   const sorted = (list) => list.toSorted(compare(value, sort.dir));
   const sortBy = (id) =>
     setSort((s) =>
@@ -217,14 +205,13 @@ export default function TypeTable({
   );
   const rowProps = {
     first,
-    takeRate,
     preview,
     expandable: !!onToggle,
     expanded,
     onToggle,
     renderExpanded,
     rowId,
-    nCols: columns.length + 1,
+    nCols: COLUMNS.length + 1,
   };
   return (
     <Box sx={{ overflowX: "auto" }}>
@@ -232,7 +219,7 @@ export default function TypeTable({
         <TableHead>
           <TableRow>
             <TableCell>{header("order", first.label, first.info)}</TableCell>
-            {columns.map((c) => (
+            {COLUMNS.map((c) => (
               <TableCell
                 key={c.id}
                 sx={{ textAlign: "right", whiteSpace: "nowrap" }}
@@ -247,7 +234,7 @@ export default function TypeTable({
             ? groups.flatMap((g) => [
                 <TableRow key={`group-${g.key}`}>
                   <TableCell
-                    colSpan={columns.length + 1}
+                    colSpan={COLUMNS.length + 1}
                     sx={{
                       pt: 2,
                       pb: 0.75,

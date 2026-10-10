@@ -51,35 +51,26 @@ test("exact Poisson interval matches the Garwood values from scipy", () => {
   assert.ok(Math.abs(h - (100_000 + 1.96 * Math.sqrt(100_000))) < 2);
 });
 
-test("typeRow: ratio, interval, take rate and median", () => {
-  // 10 picks where chance would give 8, out of 40 finds where it was present.
-  const r = typeRow({
-    picks: 10,
-    expected: 8,
-    present: 40,
-    times: [3000, 1000, 2000],
-  });
+test("typeRow: ratio, interval and median", () => {
+  // 10 picks where chance would give 8.
+  const r = typeRow({ picks: 10, expected: 8, times: [3000, 1000, 2000] });
   assert.equal(r.ratio, 1.25);
   near(r.low, 4.795389 / 8);
   near(r.high, 18.390356 / 8);
-  assert.equal(r.takeRate, 0.25);
   assert.equal(r.medianMs, 2000);
   assert.equal(r.medianN, 3);
   assert.equal(r.lowData, true); // E = 8 < MIN_EXPECTED
   assert.equal(typeRow({ picks: 30, expected: MIN_EXPECTED }).lowData, false);
 });
 
-test("typeRow: a type never on the board has no ratio and no take rate", () => {
-  const r = typeRow({ picks: 0, expected: 0, present: 0 });
+test("typeRow: a type never on the board has no ratio", () => {
+  const r = typeRow({ picks: 0, expected: 0 });
   assert.equal(r.ratio, null);
   assert.equal(r.low, null);
   assert.equal(r.high, null);
-  assert.equal(r.takeRate, null);
   assert.equal(r.medianMs, null);
   assert.equal(r.medianN, 0);
   assert.equal(r.lowData, true);
-  // Without present (the n_fresh table) there is no take rate at all.
-  assert.equal("takeRate" in typeRow({ picks: 1, expected: 2 }), false);
 });
 
 test("blind spots: E >= 30 and upper bound below 1, lowest ratio first, at most 3", () => {
@@ -102,9 +93,9 @@ test("blind spots: E >= 30 and upper bound below 1, lowest ratio first, at most 
 
 test("typeTables fills every type, including ones missing from the totals", () => {
   const totals = [
-    { kind: "ndiff", type_key: "2", picks: 3, expected: 1.5, present: 3 },
-    { kind: "mask", type_key: "0110", picks: 3, expected: 1.5, present: 3 },
-    { kind: "fresh", type_key: "1", picks: 2, expected: 1, present: 2 },
+    { kind: "ndiff", type_key: "2", picks: 3, expected: 1.5 },
+    { kind: "mask", type_key: "0110", picks: 3, expected: 1.5 },
+    { kind: "fresh", type_key: "1", picks: 2, expected: 1 },
   ];
   const t = typeTables(totals, { mask: { "0110": [1000, 3000] } });
   assert.deepEqual(
@@ -120,7 +111,6 @@ test("typeTables fills every type, including ones missing from the totals", () =
   const p = t.patterns.find((r) => r.key === "0110");
   assert.equal(p.nDiff, 2);
   assert.equal(p.medianMs, 2000);
-  assert.equal(p.takeRate, 1);
   assert.deepEqual(
     t.fresh.map((r) => [r.key, r.picks]),
     [
@@ -130,6 +120,5 @@ test("typeTables fills every type, including ones missing from the totals", () =
       [3, 0],
     ],
   );
-  assert.equal("takeRate" in t.fresh[1], false);
   assert.deepEqual(t.blindSpots, []);
 });

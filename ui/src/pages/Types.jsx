@@ -316,7 +316,6 @@ export default function Types() {
               label="Set after set"
               rows={data.fresh}
               first={freshColumn}
-              takeRate={false}
             />
           </Paper>
         </>

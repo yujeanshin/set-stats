@@ -115,29 +115,28 @@ test("set types: nothing until the saved tables are current", () => {
   assert.equal(new Queries(db).setTypes(["typed"]), null);
 });
 
-test("set types: O, E and present on a hand-built game", () => {
+test("set types: O and E on a hand-built game", () => {
   const { totals, chosen } = new Queries(typeFixture()).setTypes(["typed"]);
   const near = (a, b) => assert.equal(a.toFixed(9), b.toFixed(9));
-  // [kind, key, O, E, present]
+  // [kind, key, O, E]
   const expected = [
-    ["mask", "1000", 1, 1 / 2, 1],
-    ["mask", "0110", 1, 1 / 2 + 2 / 3, 2], // two 0110 sets on find 1's board
-    ["mask", "1111", 1, 1 / 3 + 1, 2],
-    ["ndiff", "1", 1, 1 / 2, 1],
-    ["ndiff", "2", 1, 1 / 2 + 2 / 3, 2],
-    ["ndiff", "4", 1, 1 / 3 + 1, 2],
+    ["mask", "1000", 1, 1 / 2],
+    ["mask", "0110", 1, 1 / 2 + 2 / 3], // two 0110 sets on find 1's board
+    ["mask", "1111", 1, 1 / 3 + 1],
+    ["ndiff", "1", 1, 1 / 2],
+    ["ndiff", "2", 1, 1 / 2 + 2 / 3],
+    ["ndiff", "4", 1, 1 / 3 + 1],
     // finds 1 and 2 only: find 0 has no previous find
-    ["fresh", "0", 0, 1 / 3, 1],
-    ["fresh", "1", 1, 1 / 3, 1],
-    ["fresh", "2", 1, 1, 1],
-    ["fresh", "3", 0, 1 / 3, 1],
+    ["fresh", "0", 0, 1 / 3],
+    ["fresh", "1", 1, 1 / 3],
+    ["fresh", "2", 1, 1],
+    ["fresh", "3", 0, 1 / 3],
   ];
   assert.equal(totals.length, expected.length);
-  for (const [kind, key, o, e, present] of expected) {
+  for (const [kind, key, o, e] of expected) {
     const t = totalOf(totals, kind, key);
     assert.equal(t.picks, o, `${kind} ${key} picks`);
     near(t.expected, e);
-    assert.equal(t.present, present, `${kind} ${key} present`);
   }
   // Someone else's find (0001) is not counted anywhere.
   assert.equal(totalOf(totals, "mask", "0001"), undefined);
@@ -152,17 +151,14 @@ test("set types: O, E and present on a hand-built game", () => {
     ],
   );
 
-  // Ratio and take rate from those totals; 0001 was never on my boards.
+  // Ratio from those totals; 0001 was never on my boards.
   const t = typeTables(totals);
   const row = (key) => t.patterns.find((r) => r.key === key);
   assert.equal(row("1000").ratio, 2);
   near(row("0110").ratio, 6 / 7);
   near(row("1111").ratio, 3 / 4);
-  assert.equal(row("1000").takeRate, 1);
-  assert.equal(row("0110").takeRate, 0.5);
   assert.equal(row("0001").expected, 0);
   assert.equal(row("0001").ratio, null);
-  assert.equal(row("0001").takeRate, null);
 });
 
 test("set types: over a full partition, total E = total O = finds", () => {

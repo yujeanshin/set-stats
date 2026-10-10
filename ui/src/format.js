@@ -86,6 +86,3 @@ export const countText = (n, digits = 0) =>
         minimumFractionDigits: digits,
         maximumFractionDigits: digits,
       });
-
-/** A share as a whole percent: 0.257 -> "26%". */
-export const pctText = (x) => (x == null ? "–" : `${Math.round(x * 100)}%`);

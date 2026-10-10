@@ -24,8 +24,6 @@ export const DEFINITIONS = {
     "How many picks this type would get if I took a set at random from the board each time: for each find, the share of the board's sets that are of this type, added up.",
   ratio:
     "Picks ÷ Expected. 1.0 is chance; above 1 I favor this type, below 1 I under-pick it. The bar is a 95% interval around the ratio (exact Poisson for Picks, Expected fixed); the line marks 1.0.",
-  takeRate:
-    "Of the finds where at least one set of this type was on the board, the share where I took one. It depends on how many other sets were on the board, which is why Ratio is the main measure.",
   typeMedian:
     "Median find time over the finds where I took this type, with how many finds that is (n). A find time covers the whole board, not only this type. With Drop breaks on, breaks are left out of this column only.",
   lowData: `Expected is under ${MIN_EXPECTED}: too few chances for the ratio to mean much.`,
