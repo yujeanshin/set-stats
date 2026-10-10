@@ -318,3 +318,50 @@ test("games/:id/finds: other modes are flagged, unknown ids are a 404", async ()
   assert.deepEqual(body.finds, []);
   assert.equal((await get("/games/no-such-game/finds")).status, 404);
 });
+
+test("types: my finds by type, with the top-bar filters, range and last N", async () => {
+  const sum = (rows, col) => rows.reduce((a, r) => a + r[col], 0);
+  const { body } = await get("/types?mode=puzzle"); // mode is always normal
+  assert.equal(body.mode, "normal");
+  assert.equal(body.minExpected, 30);
+  assert.deepEqual([body.from, body.to, body.lastN], [null, null, null]);
+  assert.equal(body.games, 1); // hints off leaves out the second game
+  assert.equal(body.finds, 25);
+  assert.equal(body.freshFinds, 24);
+  assert.equal(body.nDiff.length, 4);
+  assert.equal(body.patterns.length, 15);
+  assert.equal(body.fresh.length, 4);
+  for (const rows of [body.nDiff, body.patterns]) {
+    assert.equal(sum(rows, "picks"), 25);
+    assert.equal(sum(rows, "expected").toFixed(9), "25.000000000");
+    assert.equal(sum(rows, "medianN"), 25);
+  }
+  assert.equal(sum(body.fresh, "picks"), 24);
+  assert.equal(sum(body.fresh, "expected").toFixed(9), "24.000000000");
+  // 25 finds: every row is under E = 30, so none can be a blind spot.
+  assert.ok(body.patterns.every((r) => r.lowData));
+  assert.deepEqual(body.blindSpots, []);
+
+  const all = (await get("/types?hintsOff=0")).body;
+  assert.equal(all.games, 2);
+  assert.equal(all.finds, 35);
+  const done = (await get("/types?hintsOff=0&completedOnly=1")).body;
+  assert.equal(done.finds, 25);
+  const last = (await get("/types?hintsOff=0&lastN=1")).body;
+  assert.deepEqual([last.games, last.finds, last.lastN], [1, 10, 1]);
+  const from = GAME.started_at + 1;
+  const ranged = (await get(`/types?hintsOff=0&from=${from}`)).body;
+  assert.deepEqual([ranged.finds, ranged.from], [10, from]);
+  const to = (await get(`/types?hintsOff=0&to=${from}`)).body;
+  assert.equal(to.finds, 25);
+
+  // Drop breaks only changes the median column: the second game's break
+  // (seq 5) leaves it, but still counts as a pick.
+  const broken = (await get("/types?hintsOff=0&dropBreaks=1")).body;
+  assert.equal(broken.finds, 35);
+  assert.equal(sum(broken.nDiff, "picks"), 35);
+  assert.equal(sum(broken.nDiff, "medianN"), 34);
+  assert.equal(sum(all.nDiff, "medianN"), 35);
+
+  assert.equal((await get("/types?lastN=two")).status, 400);
+});

@@ -102,3 +102,10 @@ test("the games list and calendar keep them, flagged", async () => {
   assert.equal(one.bad_timing, true);
   assert.equal(one.findTimes[3], 5);
 });
+
+test("the set types page leaves them out entirely", async () => {
+  // Their replayed boards may not be what was on screen, so they are out of
+  // every column, not only the find times.
+  assert.equal((await get("/types")).finds, 25);
+  assert.equal((await get("/types?skipBadTiming=0")).finds, 50);
+});
