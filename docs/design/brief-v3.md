@@ -5,9 +5,10 @@ Version 3 reworks the Solo page on top of version 1 ([brief.md](brief.md)) and v
 1. **Headline tiles**: averages first, with a change against the 5 games before.
 2. **Data updated**: when the data on screen last changed, in the header.
 3. **Calendar days**: click a day to list its games.
-4. **Trend card**: a title that says what it shows, and one Range control.
+4. **Trend card**: a plain title, and one Range control.
 5. **Recent games, search and Records**: in place of one long games list.
 6. **Layout**: the position heatmap moves to the Set types page; Records takes its place.
+7. **Drop breaks on by default.**
 
 The working conventions are unchanged: metric math lives in `lib/` and is unit tested, the React app only formats and draws, and filters live in the URL. Everything new is a real button, link or input with a label and can be reached by keyboard. Existing components were not audited; that is a separate accessibility pass.
 
@@ -74,19 +75,21 @@ Motivation: "Over time" is a phrase, not a thing, and it wasn't clear how Date r
 
 ### What was built
 
-- **Title** follows the metric toggle: "Pace trend" or "Game time trend".
-- **One Range control** (`RangeControls.jsx`, shared with the Set types page) in place of Date range and Last N games: a select with two groups, Dates (Last 7 days, Last 30 days, Last 90 days, All time, Custom dates) and Most recent games (Last 50, 100 or 500 games, Custom number of games). Custom dates shows From and To; a custom number shows a "Number of games" input. A choice is one or the other, never both.
+- **Title:** "Trend", followed by the Pace / Game time toggle.
+- **One Range control** (`RangeControls.jsx`, shared with the Set types page) in place of Date range and Last N games: two groups of preset toggle buttons, **Dates** (7d, 30d, 90d, All time, Custom) and **Most recent games** (50, 100, 500, Custom), with one button pressed across both groups. Custom dates shows From and To; a custom number shows a "Number of games" input. A choice is one or the other, never both.
 - **Scope line** under the control: "2,392 games, Jul 12 to Oct 9", the number of games in the selection and the days of the first and last of them. Years are shown when either day isn't in the current year. `/series` and `/types` return it as `scope` (`gameSpan` in `lib/metrics.js`). The Set types page adds its finds: "· 472,353 finds".
 - **Defaults are unchanged:** 90 days on Solo, All time on Set types.
 
 ### Decisions log
 
-1. **A select, not toggle buttons.** Nine choices in one row of toggle buttons don't fit at phone width, and two rows of buttons (dates and games) would look as if both could be set. One select with labelled groups makes "one or the other" plain.
-2. **The scope line counts the games plotted**, so on Game time it counts finished games only, and it names the first and last game's days rather than the range's bounds. "Last 30 days" with no games in its first week then says so.
-3. **"Games in range" is gone** from the trend's stats, since the scope line says it. Average, best and change over range stay.
-4. **URL parameters (Set types).** Dates: `range` (absent for All time) with `from` and `to` for custom dates, as before. Games: `range=games` and `lastN`. An older link with `lastN` and no `range=games` still opens as Most recent games. An older link with both a date range and `lastN` now gets the last N games and ignores the dates, since the two can no longer combine.
-5. **Custom number of games** keeps the number from the preset it was chosen from, so the scope doesn't jump; an empty box means all games, and the scope line says how many that is. A typed 100 stays under Custom rather than turning into the Last 100 games preset.
-6. **The trend card keeps its Range in local state**, as in version 2. The Set types page keeps it in the URL.
+1. **Preset buttons, in two labelled groups.** A first version used one select with grouped options, so that "one or the other" was plain and nine choices fit at phone width. It was changed back to toggle buttons: switching between presets is one click instead of two, and the selection is visible at a glance. Only one button is pressed across both groups, so picking 500 releases 90d. The groups sit side by side on wide screens and stack on phones.
+2. **The title is just "Trend".** An earlier version named the metric ("Pace trend", "Game time trend"), which repeated the toggle beside it.
+3. **Buttons are named by their visible text.** The group headings (Dates, Most recent games) give the context, so "7d" and "50" have no separate `aria-label`, and what a screen reader or voice control uses matches what is shown.
+4. **The scope line counts the games plotted**, so on Game time it counts finished games only, and it names the first and last game's days rather than the range's bounds. "Last 30 days" with no games in its first week then says so.
+5. **"Games in range" is gone** from the trend's stats, since the scope line says it. Average, best and change over range stay.
+6. **URL parameters (Set types).** Dates: `range` (absent for All time) with `from` and `to` for custom dates, as before. Games: `range=games` and `lastN`. An older link with `lastN` and no `range=games` still opens as Most recent games. An older link with both a date range and `lastN` now gets the last N games and ignores the dates, since the two can no longer combine.
+7. **Custom number of games** keeps the number from the preset it was chosen from, so the scope doesn't jump; an empty box means all games, and the scope line says how many that is. A typed 100 stays under Custom rather than turning into the 100 preset.
+8. **The trend card keeps its Range in local state**, as in version 2. The Set types page keeps it in the URL.
 
 ## 5. Recent games, search and Records
 
@@ -125,6 +128,17 @@ Motivation: the position heatmap is analysis, not a summary, and under the chart
 
 1. **ByWindow lost its `alone` prop**, which kept it half width when the heatmap was hidden for non-normal modes. Records is always beside it now.
 2. **On the Set types page the heatmap sits in a plain box**, because its card's row sizing (`flex: 1 1 420px`) would otherwise make it 420px tall in that page's column.
+
+## 7. Drop breaks on by default
+
+### What was built
+
+- **Drop breaks is ticked by default** on every page, and the full game page's switch starts on too. `dropBreaks=0` in the URL turns it off. The API defaults to on as well, so a URL without the parameter means the same in the browser and the API. `npm run stats` is unchanged: breaks are only dropped with `--drop-breaks`.
+- **Sets counts every set I found**, breaks included. It came from the number of find times, which leaves breaks out, so with breaks dropped a game with 10 sets showed 9. `gameTiming` now also returns `myFinds`, and `sets` in the API uses it.
+
+### Decisions log
+
+1. **The break rule itself is unchanged** (brief-v2 decision 11). A long gap in a game with very few gaps can still escape it, because it pulls up the median it is measured against; a fix for that was looked at and set aside for now.
 
 ## Not changed, noted for later
 

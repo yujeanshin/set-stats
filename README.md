@@ -134,7 +134,7 @@ games from setwithfriends are stored with ids starting with `swf:`, so they can'
 
 ### breaks
 
-if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 50 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. this is off by default. the full game page has its own **Drop breaks** switch.
+if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 50 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. `npm run stats` keeps breaks unless you ask; the web UI drops them by default (untick **Drop breaks** to keep them). the full game page has its own **Drop breaks** switch.
 
 ### bad timing
 
