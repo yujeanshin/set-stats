@@ -70,3 +70,22 @@ export function localDayEnd(isoDate) {
   const [y, m, d] = isoDate.split("-").map(Number);
   return new Date(y, m - 1, d + 1).getTime() - 1;
 }
+
+/** A Ratio with two decimals: 1.234 -> "1.23"; null -> "–". */
+export const ratioText = (r) => (r == null ? "–" : r.toFixed(2));
+
+/** A 95% interval: "0.98–1.40". */
+export const intervalText = (low, high) =>
+  low == null ? "–" : `${ratioText(low)}–${ratioText(high)}`;
+
+/** A count with thousands separators: 12345 -> "12,345". Decimals: digits. */
+export const countText = (n, digits = 0) =>
+  n == null
+    ? "–"
+    : n.toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+
+/** A share as a whole percent: 0.257 -> "26%". */
+export const pctText = (x) => (x == null ? "–" : `${Math.round(x * 100)}%`);

@@ -1,6 +1,6 @@
 // Top-bar filters (brief 6.2), kept in the URL so a reload or the back
 // button from a game keeps them. Absent params mean the defaults.
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 function setOrDelete(params, key, value) {
   if (value == null) params.delete(key);
@@ -9,6 +9,9 @@ function setOrDelete(params, key, value) {
 
 export function useFilters() {
   const [params, setParams] = useSearchParams();
+  // Keep the history state (e.g. where the game page's back link goes)
+  // when a filter rewrites the URL.
+  const { state } = useLocation();
   const filters = {
     mode: params.get("mode"), // null: the server picks the most played
     completedOnly: params.get("completedOnly") === "1",
@@ -28,8 +31,44 @@ export function useFilters() {
         setOrDelete(p, "skipBadTiming", next.skipBadTiming ? null : "0");
         return p;
       },
-      { replace: true },
+      { replace: true, state },
     );
   }
   return [filters, setFilters];
+}
+
+/**
+ * The Set types page's date range and last N, in the URL like the top-bar
+ * filters: range (default "all"), from and to ("YYYY-MM-DD", custom range
+ * only) and lastN. In RangeControls' { range, customFrom, customTo, lastN }
+ * shape.
+ */
+export function useTypeRange() {
+  const [params, setParams] = useSearchParams();
+  const value = {
+    range: params.get("range") ?? "all",
+    customFrom: params.get("from") ?? "",
+    customTo: params.get("to") ?? "",
+    lastN: params.get("lastN") ?? "",
+  };
+  function setValue(patch) {
+    const next = { ...value, ...patch };
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        setOrDelete(p, "range", next.range === "all" ? null : next.range);
+        const custom = next.range === "custom";
+        setOrDelete(
+          p,
+          "from",
+          custom && next.customFrom ? next.customFrom : null,
+        );
+        setOrDelete(p, "to", custom && next.customTo ? next.customTo : null);
+        setOrDelete(p, "lastN", next.lastN || null);
+        return p;
+      },
+      { replace: true },
+    );
+  }
+  return [value, setValue];
 }

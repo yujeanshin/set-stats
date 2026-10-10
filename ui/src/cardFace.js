@@ -45,3 +45,27 @@ export function describeCard(card) {
 export function maskFeatures(mask) {
   return FEATURES.map((feature, i) => ({ feature, differs: mask[i] === "1" }));
 }
+
+// Feature names in pattern labels: "fill" for shade, as on the F mark.
+const FEATURE_WORDS = {
+  color: "color",
+  shape: "shape",
+  shade: "fill",
+  number: "number",
+};
+
+/** "0110" -> "shape + fill differ"; "1000" -> "color differs"; "1111" -> "all four differ". */
+export function maskLabel(mask) {
+  const differ = maskFeatures(mask)
+    .filter((f) => f.differs)
+    .map((f) => FEATURE_WORDS[f.feature]);
+  if (differ.length === 4) return "all four differ";
+  if (differ.length === 1) return `${differ[0]} differs`;
+  return `${differ.join(" + ")} differ`;
+}
+
+/** 2 -> "2 features differ"; for the n_diff groups. */
+export const nDiffLabel = (n) =>
+  n === 4
+    ? "All 4 features differ"
+    : `${n} feature${n === 1 ? "" : "s"} differ${n === 1 ? "s" : ""}`;

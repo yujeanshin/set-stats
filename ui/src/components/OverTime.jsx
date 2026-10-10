@@ -8,31 +8,18 @@ import {
   Paper,
   Select,
   Stack,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useApi } from "../api.js";
 import { useFilters } from "../filters.js";
-import {
-  clock,
-  localDayEnd,
-  localDayStart,
-  localMidnightDaysAgo,
-  secs,
-} from "../format.js";
+import { clock, secs } from "../format.js";
 import Histogram from "./Histogram.jsx";
 import OverTimeChart from "./OverTimeChart.jsx";
+import RangeControls, { rangeParams } from "./RangeControls.jsx";
 
 const WINDOWS = [5, 10, 12, 50, 100];
-const RANGES = [
-  ["7d", "7d"],
-  ["30d", "30d"],
-  ["90d", "90d"],
-  ["all", "All time"],
-  ["custom", "Custom"],
-];
 
 /** clock() for a value that may be negative, as the change over range is. */
 function signedClock(ms) {
@@ -92,20 +79,19 @@ export default function OverTime() {
   const [customTo, setCustomTo] = useState("");
   const [lastN, setLastN] = useState("");
 
-  const days = { "7d": 7, "30d": 30, "90d": 90 }[range];
-  const n = Number(lastN);
+  const rangeValue = { range, customFrom, customTo, lastN };
+  const setRangeValue = (patch) => {
+    if ("range" in patch) setRange(patch.range);
+    if ("customFrom" in patch) setCustomFrom(patch.customFrom);
+    if ("customTo" in patch) setCustomTo(patch.customTo);
+    if ("lastN" in patch) setLastN(patch.lastN);
+  };
   const series = useApi("/series", {
     ...filters,
     metric,
     avg,
     window: windowSize,
-    from: days
-      ? localMidnightDaysAgo(days)
-      : range === "custom" && customFrom
-        ? localDayStart(customFrom)
-        : undefined,
-    to: range === "custom" && customTo ? localDayEnd(customTo) : undefined,
-    lastN: Number.isInteger(n) && n > 0 ? n : undefined,
+    ...rangeParams(rangeValue),
   });
   const s = series.data?.summary;
   const pace = metric === "pace";
@@ -192,76 +178,7 @@ export default function OverTime() {
         spacing={2.5}
         sx={{ flexWrap: "wrap", alignItems: "flex-end" }}
       >
-        <Stack spacing={0.75}>
-          <Typography variant="subtitle2" component="span">
-            Date range
-          </Typography>
-          <ToggleButtonGroup
-            exclusive
-            value={range}
-            onChange={(e, v) => v && setRange(v)}
-            aria-label="Date range"
-          >
-            {RANGES.map(([value, label]) => (
-              <ToggleButton key={value} value={value}>
-                {label}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </Stack>
-        {range === "custom" ? (
-          <>
-            <Stack spacing={0.75}>
-              <Typography
-                variant="subtitle2"
-                component="label"
-                htmlFor="range-from"
-              >
-                From
-              </Typography>
-              <TextField
-                id="range-from"
-                type="date"
-                size="small"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                slotProps={{ htmlInput: { max: customTo || undefined } }}
-              />
-            </Stack>
-            <Stack spacing={0.75}>
-              <Typography
-                variant="subtitle2"
-                component="label"
-                htmlFor="range-to"
-              >
-                To
-              </Typography>
-              <TextField
-                id="range-to"
-                type="date"
-                size="small"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                slotProps={{ htmlInput: { min: customFrom || undefined } }}
-              />
-            </Stack>
-          </>
-        ) : null}
-        <Stack spacing={0.75}>
-          <Typography variant="subtitle2" component="label" htmlFor="lastn">
-            Last N games
-          </Typography>
-          <TextField
-            id="lastn"
-            type="number"
-            size="small"
-            placeholder="All"
-            value={lastN}
-            onChange={(e) => setLastN(e.target.value)}
-            sx={{ width: 96 }}
-            slotProps={{ htmlInput: { min: 1 } }}
-          />
-        </Stack>
+        <RangeControls value={rangeValue} onChange={setRangeValue} />
         <Stack
           component="dl"
           direction="row"

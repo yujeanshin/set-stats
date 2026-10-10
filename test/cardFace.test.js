@@ -8,6 +8,8 @@ import {
   cardFace,
   describeCard,
   maskFeatures,
+  maskLabel,
+  nDiffLabel,
 } from "../ui/src/cardFace.js";
 import { cardTraits } from "../vendor/game.js";
 
@@ -57,5 +59,18 @@ test("maskFeatures reads a diff_mask in feature order", () => {
     { feature: "shape", differs: true },
     { feature: "shade", differs: true },
     { feature: "number", differs: true },
+  ]);
+});
+
+test("pattern labels name the features that differ, fill for shade", () => {
+  assert.equal(maskLabel("1000"), "color differs");
+  assert.equal(maskLabel("0110"), "shape + fill differ");
+  assert.equal(maskLabel("1011"), "color + fill + number differ");
+  assert.equal(maskLabel("1111"), "all four differ");
+  assert.deepEqual([1, 2, 3, 4].map(nDiffLabel), [
+    "1 feature differs",
+    "2 features differ",
+    "3 features differ",
+    "All 4 features differ",
   ]);
 });

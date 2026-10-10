@@ -9,7 +9,8 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useApi } from "../api.js";
 import { BREAK_FACTOR } from "../definitions.js";
 import { useFilters } from "../filters.js";
@@ -160,6 +161,16 @@ export default function GameDetails({ id, header, titleId, replay = false }) {
     [game, boards, withReplay, dropBreaks],
   );
   const [step, setStep] = useState(0);
+  // ?find=<seq> (from the Set types page) opens the replay at that find.
+  const [params] = useSearchParams();
+  const findParam = replay ? params.get("find") : null;
+  const startIndex = useMemo(() => {
+    if (findParam == null) return -1;
+    return boards.mine.findIndex((f) => String(f.seq) === findParam);
+  }, [boards.mine, findParam]);
+  useEffect(() => {
+    if (startIndex >= 0) setStep(startIndex);
+  }, [startIndex]);
   const current = Math.min(step, Math.max(0, boards.mine.length - 1));
   const s = game?.stats;
   const v = (ms) => (game ? secs(ms) : "…");
@@ -259,6 +270,7 @@ export default function GameDetails({ id, header, titleId, replay = false }) {
               step={current}
               onStep={setStep}
               breaksDropped={dropBreaks}
+              scrollIntoView={startIndex >= 0}
             />
           ) : null}
         </>
