@@ -63,9 +63,9 @@ export default function FilterBar({ normalOnly = false, notes = {} }) {
       </Stack>
       <Stack
         direction="row"
+        useFlexGap
         spacing={2.5}
-        flexWrap="wrap"
-        sx={{ minHeight: 44, alignItems: "center" }}
+        sx={{ minHeight: 44, alignItems: "center", flexWrap: "wrap" }}
       >
         <FormControlLabel
           control={
