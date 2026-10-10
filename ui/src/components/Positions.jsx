@@ -99,8 +99,9 @@ export default function Positions({ params }) {
         {ORDER.map((pos) => {
           const share = shares[pos] ?? null;
           const { bg, fg } = heatColors(data ? heatLevel(share, extent) : null);
-          const label =
-            share == null
+          const label = !data
+            ? `Position ${pos + 1}: loading`
+            : share == null
               ? `Position ${pos + 1}: no finds`
               : `Position ${pos + 1}: ${pct(share)}, ${offText(share)}`;
           return (
