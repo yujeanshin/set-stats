@@ -18,7 +18,7 @@ Motivation: I glance at these after refreshing. The averages matter most, then t
 
 ### What was built
 
-- **Order:** Average pace (last 5 games), Average game time (last 5 games), Fastest game, Games finished / started.
+- **Order:** Average game time (last 5 games), Average pace (last 5 games), Fastest game, Games finished / started. No tile has the accent border.
 - **Change against the 5 before** under each average: "0.2 s faster than the 5 before", "12 s slower than the 5 before", or "Same as the 5 before". `recentAverage` in `lib/metrics.js` returns the tile's mean ± standard deviation as before, plus `delta`: the mean of the last 5 minus the mean of the 5 before them, using the tile's own rule for "last 5" (games with at least one find for pace, finished games for game time). No delta with fewer than 10 such games.
 
 ### Decisions log
@@ -26,6 +26,7 @@ Motivation: I glance at these after refreshing. The averages matter most, then t
 1. **Words, not a sign or a color.** Lower is better, so "−0.2" or a green number is ambiguous. The note is muted text with no color: the palette (brief.md section 8) has no good or bad colors, and the words carry the meaning on their own.
 2. **Precision matches the value above it.** Pace changes have one decimal ("0.2 s"). Game time changes are whole seconds under a minute ("12 s") and m:ss from a minute ("1:05"). A change that rounds to zero at that precision reads "Same as the 5 before", so the note never says "0.0 s faster".
 3. **The standard deviation is unchanged**: still across the last 5 per-game values (brief.md decision 2).
+4. **Game time first, and no accent.** A first version led with pace and kept the accent border brief.md's mockup gave the pace tile. Game time is now the headline number, and with the averages leading the row, no tile needs calling out.
 
 ## 2. Data updated
 
@@ -75,7 +76,7 @@ Motivation: "Over time" is a phrase, not a thing, and it wasn't clear how Date r
 
 ### What was built
 
-- **Title:** "Trend", followed by the Pace / Game time toggle.
+- **Title:** "Trend", followed by the Game time / Pace toggle. **The card opens on Game time** (brief.md section 6.5 had Pace as the default).
 - **One Range control** (`RangeControls.jsx`, shared with the Set types page) in place of Date range and Last N games: two groups of preset toggle buttons, **Dates** (7d, 30d, 90d, All time, Custom) and **Most recent games** (50, 100, 500, Custom), with one button pressed across both groups. Custom dates shows From and To; a custom number shows a "Number of games" input. A choice is one or the other, never both.
 - **Scope line** under the control: "2,392 games, Jul 12 to Oct 9", the number of games in the selection and the days of the first and last of them. Years are shown when either day isn't in the current year. `/series` and `/types` return it as `scope` (`gameSpan` in `lib/metrics.js`). The Set types page adds its finds: "· 472,353 finds".
 - **Defaults are unchanged:** 90 days on Solo, All time on Set types.
@@ -90,6 +91,7 @@ Motivation: "Over time" is a phrase, not a thing, and it wasn't clear how Date r
 6. **URL parameters (Set types).** Dates: `range` (absent for All time) with `from` and `to` for custom dates, as before. Games: `range=games` and `lastN`. An older link with `lastN` and no `range=games` still opens as Most recent games. An older link with both a date range and `lastN` now gets the last N games and ignores the dates, since the two can no longer combine.
 7. **Custom number of games** keeps the number from the preset it was chosen from, so the scope doesn't jump; an empty box means all games, and the scope line says how many that is. A typed 100 stays under Custom rather than turning into the 100 preset.
 8. **The trend card keeps its Range in local state**, as in version 2. The Set types page keeps it in the URL.
+9. **Game time is the default metric and comes first in the toggle**, matching the headline tiles, which now lead with game time. The metric is local state like the Range, so it opens on Game time on each load.
 
 ## 5. Recent games, search and Records
 
