@@ -101,7 +101,7 @@ for one game, `deriveGame()`:
 3. for each find, lists every set on its board with `findSets()`, marks the one that was taken, and counts how many of each set's cards were not on the previous find's board (`n_fresh`)
 4. writes it all in **one transaction**, so a game is either fully derived or not at all
 
-only `mode = 'normal'` games are derived. other modes use different rules (bigger sets, chains, shuffles, puzzles) that this replay does not implement.
+only `mode = 'normal'` games that started are derived. games that never left the lobby (`started_at` NULL, the `STARTED` condition in `lib/derive.js`) have nothing to replay, so derive skips them and `npm run rebuild` prints how many; a started game with no seed or deck still fails. other modes use different rules (bigger sets, chains, shuffles, puzzles) that this replay does not implement.
 
 ## rebuild modes
 

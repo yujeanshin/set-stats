@@ -68,6 +68,7 @@ The card colors are `#800080`, `#008002` and `#ff0101`, from `lightTheme.custom.
 13. **The full game page has its own Drop breaks switch.** It sets the same URL filter as the dashboard checkbox, so the choice carries back to the list, and it says how much break time it left out, or that there was none.
 14. **The Fastest game tile names the game.** It shows the game's date, which links to the game and opens it as a dialog like the games list. On a tie it is the older game, matching the best time badge.
 15. **Game page tiles: Total time, Average pace ± stdev, Median pace, Range of find times.** This replaces brief.md section 7's four tiles. The standard deviation moves into the pace tile as ±, as on the dashboard, and Total time takes its place: `duration_ms`, without breaks when they are dropped, and "– unfinished" for an unfinished game.
+16. **Games that never started are skipped by derive and the cross-check, not failed.** 50 normal games (49 setwithfriends, 1 setwithforks) never left the lobby: no `started_at`, no events, and no deck on setwithfriends, because the site only shuffles at the start. Nothing is missing or corrupt. One SQL condition, `STARTED` in `lib/derive.js`, is used by `rebuildDerived`, `deriveNew` and `test/crosscheck.test.js`. `replayGame` still fails with "missing seed" for a started game. The web UI already left these games out: every query requires `started_at`, and `/games/:id` is a 404 for them.
 
 ### Version 1 terms that could be misread (not changed)
 

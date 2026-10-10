@@ -40,7 +40,13 @@ const setsAt = db.prepare(
 
 test("only normal-mode games are derived", () => {
   const boardSets = EXPECTED.reduce((n, e) => n + e.nSets, 0);
-  assert.deepEqual(totals, { games: 1, finds: 25, boardSets, full: true });
+  assert.deepEqual(totals, {
+    games: 1,
+    finds: 25,
+    boardSets,
+    neverStarted: 0,
+    full: true,
+  });
   assert.equal(count(db, "finds WHERE game_id = 'shuffle-game'"), 0);
   assert.equal(count(db, "events WHERE game_id = 'shuffle-game'"), 25);
 });
@@ -164,6 +170,7 @@ test("deriveNew derives only games without finds", () => {
     games: 0,
     finds: 0,
     boardSets: 0,
+    neverStarted: 0,
     full: false,
   });
 });
@@ -229,4 +236,51 @@ test("with onError, a replay mismatch is reported and the other games still deri
   const again = [];
   deriveNew(db, { onError: (game) => again.push(game.game_id) });
   assert.deepEqual(again, [GAME.game_id]);
+});
+
+// A setwithfriends lobby game: never started, so no startedAt, no events
+// and no deck (the site only shuffles when a game starts).
+function lobbyGame(id) {
+  const game = JSON.parse(fixtureRaw().game_json);
+  delete game.startedAt;
+  delete game.endedAt;
+  return {
+    id,
+    created_at: game.createdAt,
+    status: "waiting",
+    game_json: JSON.stringify({ ...game, status: "waiting" }),
+    data_json: "null",
+    source: "swf",
+  };
+}
+
+test("games that never started are skipped, not failed", () => {
+  const db = memoryDb();
+  insertRaw(db, fixtureRaw());
+  insertRaw(db, lobbyGame("swf:lobby-game"));
+  loadAll(db);
+  // Without onError the first failure would throw.
+  const totals = rebuildDerived(db);
+  assert.equal(totals.games, 1);
+  assert.equal(totals.neverStarted, 1);
+  assert.equal(count(db, "finds WHERE game_id = 'swf:lobby-game'"), 0);
+  assert.equal(getMeta(db, "derive_version"), String(DERIVE_VERSION));
+  const again = deriveNew(db);
+  assert.equal(again.games, 0);
+  assert.equal(again.neverStarted, 1);
+});
+
+test("a started game with no seed or deck still fails loudly", () => {
+  const db = memoryDb();
+  const raw = fixtureRaw();
+  const data = JSON.parse(raw.data_json);
+  delete data.seed;
+  insertRaw(db, {
+    ...raw,
+    id: "swf:no-deck",
+    source: "swf",
+    data_json: JSON.stringify(data),
+  });
+  loadAll(db);
+  assert.throws(() => rebuildDerived(db), /swf:no-deck: missing seed/);
 });
