@@ -134,7 +134,7 @@ games from setwithfriends are stored with ids starting with `swf:`, so they can'
 
 ### breaks
 
-if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 50 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. this is off by default. the full game page has its own **Drop breaks** switch.
+if you took a break in the middle of a game, the gap before the next set can be many minutes and drags the average up. with `npm run stats -- --drop-breaks`, or the **Drop breaks** checkbox in the web UI, any gap longer than 50 times the median gap of its own game counts as a break: it is left out of pace, and subtracted from the game's time. gaps under 100 ms (sets that reached the site in a burst, e.g. after a dropped connection) don't count toward that median. `npm run stats` keeps breaks unless you ask; the web UI drops them by default (untick **Drop breaks** to keep them). the full game page has its own **Drop breaks** switch.
 
 ### bad timing
 
@@ -150,11 +150,16 @@ npm run ui
 
 builds the web app and starts a local server at http://localhost:3000 (set `PORT` to use another port). open it in your browser for:
 
-- a solo dashboard per game mode: headline numbers, an activity calendar, pace or game time over time with a rolling mean, median or aoX, a by-window table (the same numbers as `npm run stats`), where on the board you pick cards from (normal mode), and a list of every game
+- a solo dashboard per game mode:
+  - headline numbers: your average game time and pace over your last 5 games, each saying how it compares with the 5 before, your fastest game, and how many games you've finished
+  - an activity calendar. click a day to list that day's games and times
+  - a game time or pace trend with a rolling mean, median or aoX. its **Range** is either a date range or a number of recent games, and the line under it says how many games that covers
+  - a by-window table (the same numbers as `npm run stats`) and your records: every new best game time, with how much it beat the last one
+  - your most recent games, and a search box that finds any game by part of its id, or by a link to it pasted from the site. "Play again" games are grouped under the game they followed
 - a page per game with the time you took for each set, and a step-through replay of the board at each of your finds (normal mode)
-- a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, and whether you take sets with newly dealt cards
+- a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, whether you take sets with newly dealt cards, and where on the board you pick cards from
 
-run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
+run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. the header says when the data last changed: "Data updated" is when `npm run rebuild` or `rebuild:new` last finished. the UI keeps what it has loaded until you reload the page, so reload after a rebuild. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
 
 to work on the UI itself, run `node bin/ui.js` in one terminal and `npm run ui:dev` in another. the second serves the app with hot reload and forwards API calls to the first.
 

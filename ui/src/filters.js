@@ -16,7 +16,7 @@ export function useFilters() {
     mode: params.get("mode"), // null: the server picks the most played
     completedOnly: params.get("completedOnly") === "1",
     hintsOff: params.get("hintsOff") !== "0",
-    dropBreaks: params.get("dropBreaks") === "1",
+    dropBreaks: params.get("dropBreaks") !== "0", // on by default (brief-v3)
     skipBadTiming: params.get("skipBadTiming") !== "0",
   };
   function setFilters(patch) {
@@ -27,7 +27,7 @@ export function useFilters() {
         setOrDelete(p, "mode", next.mode);
         setOrDelete(p, "completedOnly", next.completedOnly ? "1" : null);
         setOrDelete(p, "hintsOff", next.hintsOff ? null : "0");
-        setOrDelete(p, "dropBreaks", next.dropBreaks ? "1" : null);
+        setOrDelete(p, "dropBreaks", next.dropBreaks ? null : "0");
         setOrDelete(p, "skipBadTiming", next.skipBadTiming ? null : "0");
         return p;
       },
@@ -38,33 +38,62 @@ export function useFilters() {
 }
 
 /**
- * The Set types page's date range and last N, in the URL like the top-bar
- * filters: range (default "all"), from and to ("YYYY-MM-DD", custom range
- * only) and lastN. In RangeControls' { range, customFrom, customTo, lastN }
- * shape.
+ * The calendar day whose games are open under the calendar (brief-v3 item
+ * 3), as "YYYY-MM-DD" in the `day` param, or null. In the URL so closing
+ * a game dialog, or reloading, comes back to it.
+ */
+export function useSelectedDay() {
+  const [params, setParams] = useSearchParams();
+  const { state } = useLocation();
+  const day = params.get("day");
+  function setDay(next) {
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        setOrDelete(p, "day", next);
+        return p;
+      },
+      { replace: true, state },
+    );
+  }
+  return [/^\d{4}-\d{2}-\d{2}$/.test(day ?? "") ? day : null, setDay];
+}
+
+/**
+ * The Set types page's Range (brief-v3 item 4), in the URL like the
+ * top-bar filters, in RangeControls' { range, customFrom, customTo, lastN }
+ * shape. Dates: range (default "all"), and from and to ("YYYY-MM-DD", for
+ * a custom range). Games: range=games and lastN. A link from before the
+ * single Range control may have both a date range and lastN; lastN wins.
  */
 export function useTypeRange() {
   const [params, setParams] = useSearchParams();
+  const lastN = params.get("lastN") ?? "";
+  const games = params.get("range") === "games" || lastN !== "";
   const value = {
-    range: params.get("range") ?? "all",
-    customFrom: params.get("from") ?? "",
-    customTo: params.get("to") ?? "",
-    lastN: params.get("lastN") ?? "",
+    range: games ? "games" : (params.get("range") ?? "all"),
+    customFrom: games ? "" : (params.get("from") ?? ""),
+    customTo: games ? "" : (params.get("to") ?? ""),
+    lastN,
   };
   function setValue(patch) {
     const next = { ...value, ...patch };
     setParams(
       (prev) => {
         const p = new URLSearchParams(prev);
-        setOrDelete(p, "range", next.range === "all" ? null : next.range);
         const custom = next.range === "custom";
+        setOrDelete(p, "range", next.range === "all" ? null : next.range);
         setOrDelete(
           p,
           "from",
           custom && next.customFrom ? next.customFrom : null,
         );
         setOrDelete(p, "to", custom && next.customTo ? next.customTo : null);
-        setOrDelete(p, "lastN", next.lastN || null);
+        setOrDelete(
+          p,
+          "lastN",
+          next.range === "games" && next.lastN ? next.lastN : null,
+        );
         return p;
       },
       { replace: true },

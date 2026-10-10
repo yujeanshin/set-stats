@@ -8,17 +8,16 @@ import HeadlineTiles from "../components/HeadlineTiles.jsx";
 import { useFilters } from "../filters.js";
 import { localMidnightDaysAgo } from "../format.js";
 import OverTime from "../components/OverTime.jsx";
-import Positions from "../components/Positions.jsx";
+import Records from "../components/Records.jsx";
 
-/** Solo tab (brief 6), sections top to bottom. */
+/** Solo tab (brief 6, brief-v3 item 6), sections top to bottom. */
 export default function Dashboard() {
   const [filters] = useFilters();
-  // One request serves the tiles and the By window table.
+  // One request serves the tiles, the By window table and Records.
   const summary = useApi("/summary", {
     ...filters,
     since30: localMidnightDaysAgo(30),
   });
-  const normal = summary.data?.mode === "normal";
   return (
     <Stack spacing={3}>
       <FilterBar />
@@ -26,9 +25,8 @@ export default function Dashboard() {
       <Calendar />
       <OverTime />
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-        {/* The position heatmap is normal mode only (brief 6.7). */}
-        <ByWindow summary={summary} alone={!normal} />
-        {normal ? <Positions /> : null}
+        <ByWindow summary={summary} />
+        <Records summary={summary} />
       </Box>
       <GamesList />
     </Stack>

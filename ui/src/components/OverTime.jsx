@@ -1,5 +1,6 @@
-// The Over time card (brief 6.5). Its controls are local state: they apply
-// only to this card, unlike the top-bar filters, which come from the URL.
+// The trend card (brief 6.5; title and Range from brief-v3 item 4). Its
+// controls are local state: they apply only to this card, unlike the
+// top-bar filters, which come from the URL.
 import { useState } from "react";
 import {
   Alert,
@@ -71,21 +72,16 @@ function Stat({ label, value, suffix }) {
 
 export default function OverTime() {
   const [filters] = useFilters();
-  const [metric, setMetric] = useState("pace"); // "pace" | "time"
+  const [metric, setMetric] = useState("time"); // "time" | "pace"
   const [avg, setAvg] = useState("mean"); // "mean" | "median" | "aox"
   const [windowSize, setWindowSize] = useState(5);
-  const [range, setRange] = useState("90d");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
-  const [lastN, setLastN] = useState("");
-
-  const rangeValue = { range, customFrom, customTo, lastN };
-  const setRangeValue = (patch) => {
-    if ("range" in patch) setRange(patch.range);
-    if ("customFrom" in patch) setCustomFrom(patch.customFrom);
-    if ("customTo" in patch) setCustomTo(patch.customTo);
-    if ("lastN" in patch) setLastN(patch.lastN);
-  };
+  const [rangeValue, setRange] = useState({
+    range: "90d",
+    customFrom: "",
+    customTo: "",
+    lastN: "",
+  });
+  const setRangeValue = (patch) => setRange((v) => ({ ...v, ...patch }));
   const series = useApi("/series", {
     ...filters,
     metric,
@@ -100,7 +96,7 @@ export default function OverTime() {
   return (
     <Paper
       component="section"
-      aria-label="Over time"
+      aria-labelledby="trend-title"
       sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 3 }}
     >
       <Stack
@@ -120,8 +116,8 @@ export default function OverTime() {
           spacing={2}
           sx={{ alignItems: "center", flexWrap: "wrap" }}
         >
-          <Typography variant="h2" component="h2">
-            Over time
+          <Typography id="trend-title" variant="h2" component="h2">
+            Trend
           </Typography>
           <ToggleButtonGroup
             exclusive
@@ -129,8 +125,8 @@ export default function OverTime() {
             onChange={(e, v) => v && setMetric(v)}
             aria-label="Metric"
           >
-            <ToggleButton value="pace">Pace</ToggleButton>
             <ToggleButton value="time">Game time</ToggleButton>
+            <ToggleButton value="pace">Pace</ToggleButton>
           </ToggleButtonGroup>
         </Stack>
         <Stack
@@ -178,7 +174,11 @@ export default function OverTime() {
         spacing={2.5}
         sx={{ flexWrap: "wrap", alignItems: "flex-end" }}
       >
-        <RangeControls value={rangeValue} onChange={setRangeValue} />
+        <RangeControls
+          value={rangeValue}
+          onChange={setRangeValue}
+          scope={series.data?.scope}
+        />
         <Stack
           component="dl"
           direction="row"
@@ -194,7 +194,6 @@ export default function OverTime() {
             minWidth: 0,
           }}
         >
-          <Stat label="Games in range" value={s ? s.n : "…"} />
           <Stat
             label={pace ? "Average pace" : "Average time"}
             value={s ? fmt(s.avg) : "…"}

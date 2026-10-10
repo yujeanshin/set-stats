@@ -5,6 +5,7 @@ import { createApi } from "../lib/api.js";
 import { rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
 import { Queries } from "../lib/queries.js";
+import { setMeta } from "../lib/schema.js";
 import {
   EXPECTED,
   fixtureRaw,
@@ -12,6 +13,7 @@ import {
   insertRaw,
   memoryDb,
   OPENING_BOARD,
+  USER,
 } from "./fixture.js";
 
 const DAY = 86_400_000;
@@ -88,6 +90,18 @@ test("modes: solo modes with counts", async () => {
   assert.deepEqual(body, [{ mode: "normal", name: "Normal", games: 2 }]);
 });
 
+test("meta: last sync and last rebuild times, null until written", async () => {
+  const before = (await get("/meta")).body;
+  assert.equal(before.last_sync_at, null);
+  assert.equal(before.last_rebuild_at, null);
+  setMeta(db, "last_sync_at", 1786983000000);
+  setMeta(db, "last_rebuild_at", 1786983600000);
+  const { body } = await get("/meta");
+  assert.equal(body.last_sync_at, 1786983000000);
+  assert.equal(body.last_rebuild_at, 1786983600000);
+  assert.equal(body.my_user_id, USER);
+});
+
 test("summary: filters default to hints off, mode to most played", async () => {
   const { body } = await get("/summary");
   assert.equal(body.mode, "normal");
@@ -99,7 +113,12 @@ test("summary: filters default to hints off, mode to most played", async () => {
     game_id: GAME.game_id,
     started_at: GAME.started_at,
   });
-  assert.deepEqual(body.headline.pace, { n: 1, avg: 9391.44, sd: null });
+  assert.deepEqual(body.headline.pace, {
+    n: 1,
+    avg: 9391.44,
+    sd: null,
+    delta: null,
+  });
   assert.equal(body.windows.allTime.paceMs, 9391.44);
   assert.equal(body.windows.last30Days, null);
 
@@ -120,7 +139,9 @@ test("summary: filters default to hints off, mode to most played", async () => {
 
 test("summary and game: dropBreaks removes only gaps over 50x the median", async () => {
   // The fixture game's longest gap is 11x its median: not a break.
-  const plain = (await get("/summary")).body;
+  // On by default (brief-v3), as in the UI.
+  assert.equal((await get("/summary")).body.dropBreaks, true);
+  const plain = (await get("/summary?dropBreaks=0")).body;
   const { body } = await get("/summary?dropBreaks=1");
   assert.equal(plain.dropBreaks, false);
   assert.equal(body.dropBreaks, true);
@@ -135,13 +156,16 @@ test("summary and game: dropBreaks removes only gaps over 50x the median", async
   assert.equal(game.break_ms, SECOND_BREAK_MS);
   assert.equal(game.findTimes.length, 9);
   assert.equal(game.findTimes.includes(SECOND_BREAK_MS), false);
-  const before = (await get(`/games/${SECOND}`)).body;
+  assert.equal(game.sets, 10); // the break was still a set I found
+  assert.equal((await get(`/games/${SECOND}`)).body.break_ms, SECOND_BREAK_MS);
+  const before = (await get(`/games/${SECOND}?dropBreaks=0`)).body;
   assert.equal(before.break_ms, null);
   assert.equal(before.findTimes.length, 10);
   assert.equal(before.findTimes[5], SECOND_BREAK_MS);
 
   // Pooled pace over both games drops the break.
-  const all = (await get("/summary?hintsOff=0")).body.windows.allTime;
+  const all = (await get("/summary?hintsOff=0&dropBreaks=0")).body.windows
+    .allTime;
   const dropped = (await get("/summary?hintsOff=0&dropBreaks=1")).body.windows
     .allTime;
   assert.equal(
@@ -178,6 +202,51 @@ test("calendar: one key per local day, bad zone is a 400", async () => {
   assert.match(bad.body.error, /time zone/);
 });
 
+test("day: every game that day, times without bad timing, a 400 for bad input", async () => {
+  // The fixture game started Aug 17, 2026 at 15:41 UTC; the second a day later.
+  const q = "/day?hintsOff=0&tz=UTC";
+  const { body } = await get(`${q}&date=2026-08-17`);
+  assert.equal(body.date, "2026-08-17");
+  assert.deepEqual(
+    body.games.map((g) => g.game_id),
+    [GAME.game_id],
+  );
+  assert.equal(body.games[0].sets, 25);
+  assert.deepEqual(body.summary, {
+    games: 1,
+    finished: 1,
+    leftOut: 0,
+    paceMs: 9391.44,
+    bestMs: 234786,
+    bestGameId: GAME.game_id,
+  });
+  assert.equal(body.bestGameId, GAME.game_id);
+
+  // The second game is unfinished: counted, no best time.
+  const next = (await get(`${q}&date=2026-08-18`)).body;
+  assert.deepEqual(
+    next.games.map((g) => g.game_id),
+    [SECOND],
+  );
+  assert.equal(next.summary.bestMs, null);
+  assert.equal(next.bestGameId, GAME.game_id);
+
+  // Top-bar filters apply: hints on is left out by default.
+  assert.equal((await get("/day?tz=UTC&date=2026-08-18")).body.games.length, 0);
+  // Days are local: 15:41 UTC on Aug 17 is already Aug 18 in Kiritimati (+14).
+  const east = (
+    await get("/day?hintsOff=0&tz=Pacific/Kiritimati&date=2026-08-18")
+  ).body;
+  assert.deepEqual(
+    east.games.map((g) => g.game_id),
+    [GAME.game_id],
+  );
+
+  assert.equal((await get(`${q}&date=Aug-17`)).status, 400);
+  assert.equal((await get(`${q}`)).status, 400);
+  assert.equal((await get("/day?tz=Mars/Olympus&date=2026-08-17")).status, 400);
+});
+
 test("series: range then last N, records over all games, rolling needs X", async () => {
   const both = (await get("/series?hintsOff=0&window=5")).body;
   assert.equal(both.metric, "pace");
@@ -194,8 +263,15 @@ test("series: range then last N, records over all games, rolling needs X", async
   assert.equal(both.summary.change, null);
   assert.equal(both.histogram.bins.length > 0, true);
 
+  assert.deepEqual(both.scope, {
+    games: 2,
+    from: GAME.started_at,
+    to: GAME.started_at + DAY,
+  });
+
   const time = (await get("/series?hintsOff=0&metric=time")).body;
   assert.equal(time.points.length, 1); // finished games only
+  assert.equal(time.scope.games, 1);
   assert.equal(time.points[0].value, 234786);
 
   const lastOne = (await get("/series?hintsOff=0&lastN=1")).body;
@@ -231,6 +307,107 @@ test("games: newest first, paged, best game flagged", async () => {
     page.games.map((g) => g.game_id),
     [GAME.game_id],
   );
+});
+
+test("summary: records, newest first, with how much each beat the last", async () => {
+  const { body } = await get("/summary?hintsOff=0");
+  assert.deepEqual(body.records, [
+    {
+      game_id: GAME.game_id,
+      started_at: GAME.started_at,
+      durationMs: 234786,
+      beatByMs: null,
+    },
+  ]);
+});
+
+test("games/search: any started game by part of its id, or a pasted URL", async () => {
+  const heads = (body) => body.series.map((s) => s.head.game_id);
+  const { body } = await get("/games/search?q=TIRED");
+  assert.equal(body.q, "tired");
+  assert.equal(body.total, 1);
+  assert.equal(body.seriesTotal, 1);
+  assert.deepEqual(body.series, [
+    {
+      base: GAME.game_id,
+      head: {
+        game_id: GAME.game_id,
+        mode: "normal",
+        modeName: "Normal",
+        n_players: 1,
+        status: "done",
+        started_at: GAME.started_at,
+        durationMs: 234786,
+      },
+      more: 0,
+    },
+  ]);
+  // Not limited by the top-bar filters or mode: hints on, multiplayer,
+  // other modes all match. Newest first.
+  const all = (await get("/games/search?q=-game&hintsOff=1&mode=normal")).body;
+  assert.deepEqual(heads(all), [ULTRA, SECOND]);
+  assert.equal(all.series[0].head.n_players, 2);
+  assert.equal(all.series[1].head.durationMs, null); // unfinished
+
+  const url = encodeURIComponent(
+    `https://setwithforks.com/game/${GAME.game_id}`,
+  );
+  assert.deepEqual(heads((await get(`/games/search?q=${url}`)).body), [
+    GAME.game_id,
+  ]);
+  // The same id on the other site is a different game.
+  const swf = encodeURIComponent(
+    `https://setwithfriends.com/game/${GAME.game_id}`,
+  );
+  assert.equal((await get(`/games/search?q=${swf}`)).body.total, 0);
+
+  assert.deepEqual((await get("/games/search?q=%20")).body, {
+    q: "",
+    total: 0,
+    seriesTotal: 0,
+    series: [],
+  });
+  assert.equal((await get("/games/search?q=nothing-like-it")).body.total, 0);
+});
+
+test("games/search: a Play again series is one result, headed by its first game", async () => {
+  // A Play again game after the ultraset game: multiplayer, so no solo
+  // stats in the other tests see it.
+  const AGAIN = `${ULTRA}-1`;
+  db.prepare(
+    `INSERT INTO games (game_id, mode, status, enable_hint, created_at,
+       started_at, ended_at, n_players)
+     VALUES (?, 'ultraset', 'done', 0, ?, ?, ?, 2)`,
+  ).run(
+    AGAIN,
+    raw.created_at + 3 * DAY,
+    GAME.started_at + 3 * DAY,
+    GAME.started_at + 3 * DAY + 60_000,
+  );
+
+  const { body } = await get("/games/search?q=ultra");
+  assert.equal(body.total, 2);
+  assert.equal(body.seriesTotal, 1);
+  assert.equal(body.series.length, 1);
+  assert.equal(body.series[0].base, ULTRA);
+  assert.equal(body.series[0].head.game_id, ULTRA); // older, but the first
+  assert.equal(body.series[0].more, 1);
+
+  // Only the Play again game matches: it heads its series on its own.
+  const one = (await get(`/games/search?q=${AGAIN}`)).body;
+  assert.equal(one.series[0].head.game_id, AGAIN);
+  assert.equal(one.series[0].more, 0);
+
+  // Expanding the series lists every match in it, newest first.
+  const series = (await get(`/games/search?q=ultra&series=${ULTRA}`)).body;
+  assert.equal(series.base, ULTRA);
+  assert.deepEqual(
+    series.games.map((g) => g.game_id),
+    [AGAIN, ULTRA],
+  );
+  assert.equal(series.games[0].durationMs, 60_000);
+  const none = (await get("/games/search?q=ultra&series=nope")).body;
+  assert.deepEqual(none.games, []);
 });
 
 test("games/:id: find times and tiles; unknown id is a 404", async () => {
@@ -349,6 +526,11 @@ test("types: my finds by type, with the top-bar filters, range and last N", asyn
   assert.equal(done.finds, 25);
   const last = (await get("/types?hintsOff=0&lastN=1")).body;
   assert.deepEqual([last.games, last.finds, last.lastN], [1, 10, 1]);
+  assert.deepEqual(last.scope, {
+    games: 1,
+    from: GAME.started_at + DAY,
+    to: GAME.started_at + DAY,
+  });
   const from = GAME.started_at + 1;
   const ranged = (await get(`/types?hintsOff=0&from=${from}`)).body;
   assert.deepEqual([ranged.finds, ranged.from], [10, from]);
@@ -361,7 +543,9 @@ test("types: my finds by type, with the top-bar filters, range and last N", asyn
   assert.equal(broken.finds, 35);
   assert.equal(sum(broken.nDiff, "picks"), 35);
   assert.equal(sum(broken.nDiff, "medianN"), 34);
-  assert.equal(sum(all.nDiff, "medianN"), 35);
+  const kept = (await get("/types?hintsOff=0&dropBreaks=0")).body;
+  assert.equal(sum(kept.nDiff, "medianN"), 35);
+  assert.equal(sum(all.nDiff, "medianN"), 34); // on by default
 
   assert.equal((await get("/types?lastN=two")).status, 400);
 });

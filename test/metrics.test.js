@@ -4,6 +4,9 @@ import {
   addDays,
   calendarRange,
   calendarThresholds,
+  daySummary,
+  fastestGame,
+  gameSpan,
   aoX,
   BREAK_FACTOR,
   breakFlags,
@@ -15,7 +18,10 @@ import {
   localDayKey,
   mean,
   median,
+  onDay,
   recordGameIds,
+  recentAverage,
+  records,
   rolling,
   sampleStdev,
   seriesSummary,
@@ -144,15 +150,135 @@ test("headline tiles: stdev across per-game paces, last 5 finished for time", ()
   assert.equal(h.pace.n, 4); // e has no finds
   assert.equal(h.pace.avg, 11_000);
   near(h.pace.sd, 1000 * Math.sqrt(26 / 3));
+  assert.equal(h.pace.delta, null); // fewer than 10 games with finds
   assert.deepEqual(h.gameTime, {
     n: 4,
     avg: 210_000,
     sd: sampleStdev([240_000, 200_000, 220_000, 180_000]),
+    delta: null,
   });
+});
+
+test("recentAverage: last n against the n before, only with 2n values", () => {
+  const xs = [9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const r = recentAverage(xs, 5);
+  assert.equal(r.n, 5);
+  assert.equal(r.avg, 8); // 6..10
+  assert.equal(r.sd, sampleStdev([6, 7, 8, 9, 10]));
+  assert.equal(r.delta, 5); // 8 - mean(1..5); the leading 9 is not used
+  assert.equal(recentAverage(xs.slice(1), 5).delta, 5); // exactly 2n
+  assert.equal(recentAverage(xs.slice(2), 5).delta, null); // 2n - 1
+  assert.equal(recentAverage([5, 4, 3, 2], 2).delta, -2); // lower: negative
+  assert.deepEqual(recentAverage([], 5), {
+    n: 0,
+    avg: null,
+    sd: null,
+    delta: null,
+  });
+});
+
+test("headline deltas use each tile's own rule for the last 5", () => {
+  // 12 games: pace counts games with finds, game time finished games.
+  const many = Array.from({ length: 12 }, (_, i) =>
+    game(
+      `g${i}`,
+      T0 + i * DAY,
+      100_000 + i * 1000,
+      i === 11 ? [] : [10_000 - i * 100],
+      i === 10 ? "ingame" : "done",
+    ),
+  );
+  const h = headline(many);
+  // Paces: games 0-10 (11 has no finds). Last 5: 6-10, before: 1-5.
+  near(h.pace.delta, -500);
+  // Finished: 0-9 and 11. Last 5: 7, 8, 9, 11 and 6; before: 1-5.
+  near(h.gameTime.delta, (6 + 7 + 8 + 9 + 11 - (1 + 2 + 3 + 4 + 5)) * 200);
+});
+
+test("fastestGame: lowest finished time, the older game on a tie", () => {
+  assert.equal(fastestGame(GAMES).game_id, "e");
+  const tie = [...GAMES, game("f", T0 + 4 * DAY, 180_000, [1])];
+  assert.equal(fastestGame(tie).game_id, "e");
+  assert.equal(fastestGame([GAMES[2]]), null); // unfinished only
+  assert.equal(fastestGame([]), null);
+});
+
+test("onDay keeps the games started on that local day in the zone", () => {
+  const ids = (gs) => gs.map((g) => g.game_id);
+  // d and e start Aug 13 in New York (noon and 1 PM).
+  assert.deepEqual(ids(onDay(GAMES, "2026-08-13", "America/New_York")), [
+    "d",
+    "e",
+  ]);
+  // In Tokyo, c (Aug 12, 4 PM UTC) is already Aug 13; d and e are Aug 14.
+  assert.deepEqual(ids(onDay(GAMES, "2026-08-13", "Asia/Tokyo")), ["c"]);
+  assert.deepEqual(onDay(GAMES, "2026-01-01", "UTC"), []);
+});
+
+test("daySummary: count every game, times from the timed ones only", () => {
+  const [, , c, d, e] = GAMES;
+  assert.deepEqual(daySummary([c, d, e], [c, d, e]), {
+    games: 3,
+    finished: 2,
+    leftOut: 0,
+    paceMs: 9_500, // mean of c's 8k and d's 11k; e has no finds
+    bestMs: 180_000,
+    bestGameId: "e",
+  });
+  // e left out (say for bad timing): still counted, not in the times.
+  assert.deepEqual(daySummary([c, d, e], [c, d]), {
+    games: 3,
+    finished: 2,
+    leftOut: 1,
+    paceMs: 9_500,
+    bestMs: 220_000,
+    bestGameId: "d",
+  });
+  assert.deepEqual(daySummary([], []), {
+    games: 0,
+    finished: 0,
+    leftOut: 0,
+    paceMs: null,
+    bestMs: null,
+    bestGameId: null,
+  });
+});
+
+test("gameSpan: count and the first and last start times", () => {
+  assert.deepEqual(gameSpan(GAMES), {
+    games: 5,
+    from: T0,
+    to: T0 + 3 * DAY + 3_600_000,
+  });
+  assert.deepEqual(gameSpan([GAMES[1]]), {
+    games: 1,
+    from: T0 + DAY,
+    to: T0 + DAY,
+  });
+  assert.deepEqual(gameSpan([]), { games: 0, from: null, to: null });
 });
 
 test("records are games that set a new best finished time", () => {
   assert.deepEqual([...recordGameIds(GAMES)], ["a", "b", "e"]);
+  assert.deepEqual(records(GAMES), [
+    { game_id: "a", started_at: T0, durationMs: 240_000, beatByMs: null },
+    {
+      game_id: "b",
+      started_at: T0 + DAY,
+      durationMs: 200_000,
+      beatByMs: 40_000,
+    },
+    {
+      game_id: "e",
+      started_at: T0 + 3 * DAY + 3_600_000,
+      durationMs: 180_000,
+      beatByMs: 20_000,
+    },
+  ]);
+  // A tie is not a new best; unfinished games never are.
+  const tie = game("f", T0 + 4 * DAY, 180_000, [1]);
+  assert.deepEqual(records([...GAMES, tie]), records(GAMES));
+  assert.deepEqual(records([GAMES[2]]), []);
 });
 
 test("seriesSummary: change is last rolling value minus first", () => {

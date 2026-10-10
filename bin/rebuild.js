@@ -2,9 +2,12 @@
 //   default  load raw data, then drop and rebuild all derived tables
 //   --new    load raw data, then derive only games without derived rows yet
 // A game that fails to replay is reported and skipped; the rest still run.
+// Either way it ends by saving meta.last_rebuild_at, the "Data updated"
+// time in the web UI's header: what the UI shows changes here, not at sync.
 import db from "../lib/db.js";
 import { deriveNew, rebuildDerived } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
+import { setMeta } from "../lib/schema.js";
 
 const onlyNew = process.argv.includes("--new");
 
@@ -46,3 +49,4 @@ if (failed.length) {
       "). they have no finds or board_sets rows; rebuild:new retries them.",
   );
 }
+setMeta(db, "last_rebuild_at", Date.now());

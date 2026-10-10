@@ -21,6 +21,7 @@ the tests never write to `data/games.db` and never contact either site. each one
 | `crosscheck.test.js` | the replay agrees with each site's own code on all your games                                           |
 | `schema.test.js`     | migrating an older database; per-site `my_finds`; `parseRaw` with a deck                                |
 | `config.test.js`     | the `swf:` id prefix                                                                                    |
+| `search.test.js`     | the web UI's game search: reading a pasted game link, and grouping Play again series                    |
 | `auth.test.js`       | token renewal and `accessToken`                                                                         |
 | `sync.test.js`       | which games sync fetches, and restoring archived games                                                  |
 | `queries.test.js`    | the web UI uses my user id on each game's site; set-type totals on a hand-built game                    |

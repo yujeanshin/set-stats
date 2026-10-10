@@ -10,6 +10,7 @@ import { maskLabel, nDiffLabel } from "../cardFace.js";
 import DiffMarks from "../components/DiffMarks.jsx";
 import FilterBar from "../components/FilterBar.jsx";
 import InfoTip from "../components/InfoTip.jsx";
+import Positions from "../components/Positions.jsx";
 import RangeControls, { rangeParams } from "../components/RangeControls.jsx";
 import Tile from "../components/Tile.jsx";
 import { ExampleFinds, ExamplePreview } from "../components/TypeExamples.jsx";
@@ -241,29 +242,13 @@ export default function Types() {
   return (
     <Stack spacing={3}>
       <FilterBar normalOnly notes={FILTER_NOTES} />
-      <Paper component="section" aria-label="Games" sx={{ p: 2.5 }}>
-        <Stack
-          direction="row"
-          useFlexGap
-          spacing={2.5}
-          sx={{ flexWrap: "wrap", alignItems: "flex-end" }}
-        >
-          <RangeControls value={range} onChange={setRange} idPrefix="types-" />
-          <Typography
-            sx={{
-              ml: "auto",
-              fontFamily: "mono",
-              fontSize: 15,
-              minHeight: 44,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {ready
-              ? `${countText(data.games)} games · ${countText(data.finds)} finds`
-              : "…"}
-          </Typography>
-        </Stack>
+      <Paper component="section" aria-label="Range" sx={{ p: 2.5 }}>
+        <RangeControls
+          value={range}
+          onChange={setRange}
+          scope={ready ? data.scope : null}
+          extra={ready ? `${countText(data.finds)} finds` : null}
+        />
       </Paper>
       {error ? <Alert severity="error">{error.message}</Alert> : null}
       {data?.needsRebuild ? (
@@ -320,6 +305,12 @@ export default function Types() {
           </Paper>
         </>
       ) : null}
+      {/* Moved here from the Solo page (brief-v3 item 6), unchanged for
+          now: it doesn't follow the Range above. The Box stops its row
+          sizing (flex: 1 1 420px) from setting its height in this column. */}
+      <Box>
+        <Positions />
+      </Box>
     </Stack>
   );
 }

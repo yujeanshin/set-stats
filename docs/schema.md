@@ -185,13 +185,14 @@ one row per find of mine: the chosen set's type and the find time, for medians (
 
 ### `meta`
 
-| key              | written by | meaning                                                                                                                                                                                |
-| ---------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `my_user_id`     | every open | my user id on setwithforks (`SITES.forks.uid` in `lib/config.js`)                                                                                                                      |
-| `my_user_id:swf` | every open | my user id on setwithfriends (`SITES.swf.uid`)                                                                                                                                         |
-| `schema_version` | every open | version of the table layout in `lib/schema.js`                                                                                                                                         |
-| `derive_version` | rebuild    | version of the derive logic that produced `finds`, `board_sets` and the set-type tables. cleared at the start of a full rebuild, so if it is missing the derived tables are incomplete |
-| `last_sync_at`   | sync       | time of the last successful sync (ms)                                                                                                                                                  |
+| key               | written by | meaning                                                                                                                                                                                |
+| ----------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `my_user_id`      | every open | my user id on setwithforks (`SITES.forks.uid` in `lib/config.js`)                                                                                                                      |
+| `my_user_id:swf`  | every open | my user id on setwithfriends (`SITES.swf.uid`)                                                                                                                                         |
+| `schema_version`  | every open | version of the table layout in `lib/schema.js`                                                                                                                                         |
+| `derive_version`  | rebuild    | version of the derive logic that produced `finds`, `board_sets` and the set-type tables. cleared at the start of a full rebuild, so if it is missing the derived tables are incomplete |
+| `last_sync_at`    | sync       | time of the last successful sync (ms)                                                                                                                                                  |
+| `last_rebuild_at` | rebuild    | time the last `npm run rebuild` or `rebuild:new` finished (ms), shown as "Data updated" in the web UI                                                                                  |
 
 ### `my_finds` (view)
 

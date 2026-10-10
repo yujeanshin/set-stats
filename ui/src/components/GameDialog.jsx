@@ -16,7 +16,7 @@ import {
 } from "react-router-dom";
 import GameDetails from "./GameDetails.jsx";
 
-function CloseIcon() {
+export function CloseIcon() {
   return (
     <svg
       width="18"

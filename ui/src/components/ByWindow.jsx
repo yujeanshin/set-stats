@@ -21,8 +21,8 @@ const ROWS = [
 
 const num = { fontFamily: "mono", fontSize: 14, textAlign: "right" };
 
-/** `alone`: no heatmap beside it; stays half width on wide screens. */
-export default function ByWindow({ summary, alone = false }) {
+/** Half width beside Records on wide screens. */
+export default function ByWindow({ summary }) {
   const windows = summary.data?.windows;
   return (
     <Paper
@@ -32,7 +32,6 @@ export default function ByWindow({ summary, alone = false }) {
         p: 2.5,
         flex: "1 1 420px",
         minWidth: 0,
-        maxWidth: alone ? { md: "calc(50% - 12px)" } : undefined,
       }}
     >
       <Typography variant="h2" component="h2" sx={{ mb: 1.5 }}>
