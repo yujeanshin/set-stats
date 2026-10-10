@@ -1,13 +1,14 @@
 import { Alert, Box, Link } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { clock, dateOnly, dateTime, secs } from "../format.js";
+import { clock, dateOnly, dateTime, deltaText, secs } from "../format.js";
 import Tile from "./Tile.jsx";
 
+// Most glanced at first (brief-v3 item 1).
 const LABELS = [
-  "Games finished / started",
-  "Fastest game",
   "Average pace, last 5 games",
   "Average game time, last 5 games",
+  "Fastest game",
+  "Games finished / started",
 ];
 
 /** "± 0.4" using fmt, or "" when there is no standard deviation (n < 2). */
@@ -34,7 +35,10 @@ function FastestLink({ game }) {
   );
 }
 
-/** The four headline tiles (brief 6.3). `summary` is useApi("/summary"). */
+/**
+ * The four headline tiles (brief 6.3, order and deltas from brief-v3 item
+ * 1). `summary` is useApi("/summary").
+ */
 export default function HeadlineTiles({ summary }) {
   const { data, error } = summary;
   if (error) return <Alert severity="error">{error.message}</Alert>;
@@ -43,12 +47,21 @@ export default function HeadlineTiles({ summary }) {
     ? [
         {
           label: LABELS[0],
-          value: h.finished,
-          suffix: `/ ${h.started}`,
-          suffixSize: 18,
+          value: secs(h.pace.avg),
+          suffix: [plusMinus(h.pace.sd, secs), "s / set"]
+            .filter(Boolean)
+            .join(" "),
+          note: deltaText(h.pace.delta, "pace"),
+          accent: true,
         },
         {
           label: LABELS[1],
+          value: shortClock(h.gameTime.avg),
+          suffix: plusMinus(h.gameTime.sd, shortClock),
+          note: deltaText(h.gameTime.delta, "time"),
+        },
+        {
+          label: LABELS[2],
           value: clock(h.fastestMs),
           suffix: h.fastestGame ? (
             <>
@@ -57,17 +70,10 @@ export default function HeadlineTiles({ summary }) {
           ) : null,
         },
         {
-          label: LABELS[2],
-          value: secs(h.pace.avg),
-          suffix: [plusMinus(h.pace.sd, secs), "s / set"]
-            .filter(Boolean)
-            .join(" "),
-          accent: true,
-        },
-        {
           label: LABELS[3],
-          value: shortClock(h.gameTime.avg),
-          suffix: plusMinus(h.gameTime.sd, shortClock),
+          value: h.finished,
+          suffix: `/ ${h.started}`,
+          suffixSize: 18,
         },
       ]
     : LABELS.map((label) => ({ label, value: "…" }));

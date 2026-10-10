@@ -16,6 +16,7 @@ import {
   mean,
   median,
   recordGameIds,
+  recentAverage,
   rolling,
   sampleStdev,
   seriesSummary,
@@ -144,11 +145,49 @@ test("headline tiles: stdev across per-game paces, last 5 finished for time", ()
   assert.equal(h.pace.n, 4); // e has no finds
   assert.equal(h.pace.avg, 11_000);
   near(h.pace.sd, 1000 * Math.sqrt(26 / 3));
+  assert.equal(h.pace.delta, null); // fewer than 10 games with finds
   assert.deepEqual(h.gameTime, {
     n: 4,
     avg: 210_000,
     sd: sampleStdev([240_000, 200_000, 220_000, 180_000]),
+    delta: null,
   });
+});
+
+test("recentAverage: last n against the n before, only with 2n values", () => {
+  const xs = [9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const r = recentAverage(xs, 5);
+  assert.equal(r.n, 5);
+  assert.equal(r.avg, 8); // 6..10
+  assert.equal(r.sd, sampleStdev([6, 7, 8, 9, 10]));
+  assert.equal(r.delta, 5); // 8 - mean(1..5); the leading 9 is not used
+  assert.equal(recentAverage(xs.slice(1), 5).delta, 5); // exactly 2n
+  assert.equal(recentAverage(xs.slice(2), 5).delta, null); // 2n - 1
+  assert.equal(recentAverage([5, 4, 3, 2], 2).delta, -2); // lower: negative
+  assert.deepEqual(recentAverage([], 5), {
+    n: 0,
+    avg: null,
+    sd: null,
+    delta: null,
+  });
+});
+
+test("headline deltas use each tile's own rule for the last 5", () => {
+  // 12 games: pace counts games with finds, game time finished games.
+  const many = Array.from({ length: 12 }, (_, i) =>
+    game(
+      `g${i}`,
+      T0 + i * DAY,
+      100_000 + i * 1000,
+      i === 11 ? [] : [10_000 - i * 100],
+      i === 10 ? "ingame" : "done",
+    ),
+  );
+  const h = headline(many);
+  // Paces: games 0-10 (11 has no finds). Last 5: 6-10, before: 1-5.
+  near(h.pace.delta, -500);
+  // Finished: 0-9 and 11. Last 5: 7, 8, 9, 11 and 6; before: 1-5.
+  near(h.gameTime.delta, (6 + 7 + 8 + 9 + 11 - (1 + 2 + 3 + 4 + 5)) * 200);
 });
 
 test("records are games that set a new best finished time", () => {

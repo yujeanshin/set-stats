@@ -99,7 +99,12 @@ test("summary: filters default to hints off, mode to most played", async () => {
     game_id: GAME.game_id,
     started_at: GAME.started_at,
   });
-  assert.deepEqual(body.headline.pace, { n: 1, avg: 9391.44, sd: null });
+  assert.deepEqual(body.headline.pace, {
+    n: 1,
+    avg: 9391.44,
+    sd: null,
+    delta: null,
+  });
   assert.equal(body.windows.allTime.paceMs, 9391.44);
   assert.equal(body.windows.last30Days, null);
 

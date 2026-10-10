@@ -17,6 +17,28 @@ export function clock(ms, { tenths = true } = {}) {
   return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 
+/**
+ * A difference in time for reading as words: "0.4 s" for paces (one
+ * decimal), "12 s" or "1:05" for game times (whole seconds).
+ */
+export function gapText(ms, kind) {
+  if (kind === "pace") return `${secs(ms)} s`;
+  const s = Math.round(ms / 1000);
+  return s < 60 ? `${s} s` : clock(s * 1000, { tenths: false });
+}
+
+/**
+ * A headline tile's change against the 5 games before (brief-v3 item 1), in
+ * words because lower is better: "0.2 s faster than the 5 before". A change
+ * that rounds to zero is "Same as the 5 before". Null delta: null.
+ */
+export function deltaText(delta, kind) {
+  if (delta == null) return null;
+  const size = gapText(Math.abs(delta), kind);
+  if (size === gapText(0, kind)) return "Same as the 5 before";
+  return `${size} ${delta < 0 ? "faster" : "slower"} than the 5 before`;
+}
+
 /** "Aug 17, 2026, 12:21 PM" in the browser's zone and language. */
 export const dateTime = (ms) =>
   new Date(ms).toLocaleString(undefined, {

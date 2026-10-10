@@ -2,14 +2,16 @@ import { Paper, Typography } from "@mui/material";
 
 /**
  * One statistic card: a small label, a big mono value, and an optional
- * smaller grey suffix (unit, ± spread). `accent` gives the purple border
- * the mockups use to call out one tile.
+ * smaller grey suffix (unit, ± spread). `note` is a line of text under the
+ * value. `accent` gives the purple border the mockups use to call out one
+ * tile.
  */
 export default function Tile({
   label,
   value,
   suffix,
   suffixSize = 15,
+  note,
   accent = false,
   size = 30,
 }) {
@@ -58,6 +60,15 @@ export default function Tile({
           </Typography>
         ) : null}
       </Typography>
+      {note ? (
+        <Typography
+          variant="body2"
+          component="div"
+          sx={{ mt: 0.5, color: "text.secondary" }}
+        >
+          {note}
+        </Typography>
+      ) : null}
     </Paper>
   );
 }
