@@ -121,9 +121,13 @@ function BlindSpots({ keys, patterns, minExpected, onSelect }) {
                     }}
                   >
                     <span>
-                      ratio {ratioText(r.ratio)} ({intervalText(r.low, r.high)})
+                      picked {countText(r.picks)}, expected{" "}
+                      {countText(r.expected)}
                     </span>
-                    <span>E {countText(r.expected)}</span>
+                    <span>
+                      ratio {ratioText(r.ratio)} (95%{" "}
+                      {intervalText(r.low, r.high)})
+                    </span>
                   </Box>
                 </Box>
               </Button>
