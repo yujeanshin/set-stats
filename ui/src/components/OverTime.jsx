@@ -72,7 +72,7 @@ function Stat({ label, value, suffix }) {
 
 export default function OverTime() {
   const [filters] = useFilters();
-  const [metric, setMetric] = useState("pace"); // "pace" | "time"
+  const [metric, setMetric] = useState("time"); // "time" | "pace"
   const [avg, setAvg] = useState("mean"); // "mean" | "median" | "aox"
   const [windowSize, setWindowSize] = useState(5);
   const [rangeValue, setRange] = useState({
@@ -125,8 +125,8 @@ export default function OverTime() {
             onChange={(e, v) => v && setMetric(v)}
             aria-label="Metric"
           >
-            <ToggleButton value="pace">Pace</ToggleButton>
             <ToggleButton value="time">Game time</ToggleButton>
+            <ToggleButton value="pace">Pace</ToggleButton>
           </ToggleButtonGroup>
         </Stack>
         <Stack
