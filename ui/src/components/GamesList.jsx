@@ -1,12 +1,14 @@
-// Games table (brief 6.8): newest first, 20 rows at a time, each linking to
-// its single game view. The current fastest game gets a "Best time" badge.
+// Recent games (brief 6.8, brief-v3 item 5): newest first, 10 rows at a
+// time, each opening its game. The current fastest game gets a "Best
+// time" badge. Above the table, a search for any game by its id.
 import { useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, Paper, Typography } from "@mui/material";
 import { getJson } from "../api.js";
 import { useFilters } from "../filters.js";
+import GameSearch from "./GameSearch.jsx";
 import GameTable from "./GameTable.jsx";
 
-const PAGE = 20;
+const PAGE = 10;
 
 export default function GamesList() {
   const [filters] = useFilters();
@@ -65,10 +67,16 @@ export default function GamesList() {
   }, [key]);
 
   return (
-    <Paper component="section" aria-label="Games" sx={{ p: 2.5 }}>
-      <Typography variant="h2" component="h2" sx={{ mb: 1.5 }}>
-        Games
+    <Paper component="section" aria-labelledby="recent-title" sx={{ p: 2.5 }}>
+      <Typography
+        id="recent-title"
+        variant="h2"
+        component="h2"
+        sx={{ mb: 1.5 }}
+      >
+        Recent games
       </Typography>
+      <GameSearch />
       {error ? <Alert severity="error">{error.message}</Alert> : null}
       <GameTable
         games={games}

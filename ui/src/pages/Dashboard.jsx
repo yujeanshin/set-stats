@@ -9,6 +9,7 @@ import { useFilters } from "../filters.js";
 import { localMidnightDaysAgo } from "../format.js";
 import OverTime from "../components/OverTime.jsx";
 import Positions from "../components/Positions.jsx";
+import Records from "../components/Records.jsx";
 
 /** Solo tab (brief 6), sections top to bottom. */
 export default function Dashboard() {
@@ -28,6 +29,7 @@ export default function Dashboard() {
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
         {/* The position heatmap is normal mode only (brief 6.7). */}
         <ByWindow summary={summary} alone={!normal} />
+        <Records summary={summary} />
         {normal ? <Positions /> : null}
       </Box>
       <GamesList />

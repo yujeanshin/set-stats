@@ -21,6 +21,7 @@ import {
   onDay,
   recordGameIds,
   recentAverage,
+  records,
   rolling,
   sampleStdev,
   seriesSummary,
@@ -259,6 +260,25 @@ test("gameSpan: count and the first and last start times", () => {
 
 test("records are games that set a new best finished time", () => {
   assert.deepEqual([...recordGameIds(GAMES)], ["a", "b", "e"]);
+  assert.deepEqual(records(GAMES), [
+    { game_id: "a", started_at: T0, durationMs: 240_000, beatByMs: null },
+    {
+      game_id: "b",
+      started_at: T0 + DAY,
+      durationMs: 200_000,
+      beatByMs: 40_000,
+    },
+    {
+      game_id: "e",
+      started_at: T0 + 3 * DAY + 3_600_000,
+      durationMs: 180_000,
+      beatByMs: 20_000,
+    },
+  ]);
+  // A tie is not a new best; unfinished games never are.
+  const tie = game("f", T0 + 4 * DAY, 180_000, [1]);
+  assert.deepEqual(records([...GAMES, tie]), records(GAMES));
+  assert.deepEqual(records([GAMES[2]]), []);
 });
 
 test("seriesSummary: change is last rolling value minus first", () => {

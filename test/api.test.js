@@ -304,6 +304,61 @@ test("games: newest first, paged, best game flagged", async () => {
   );
 });
 
+test("summary: records, newest first, with how much each beat the last", async () => {
+  const { body } = await get("/summary?hintsOff=0");
+  assert.deepEqual(body.records, [
+    {
+      game_id: GAME.game_id,
+      started_at: GAME.started_at,
+      durationMs: 234786,
+      beatByMs: null,
+    },
+  ]);
+});
+
+test("games/search: any started game by part of its id, or a pasted URL", async () => {
+  const ids = (body) => body.games.map((g) => g.game_id);
+  const { body } = await get("/games/search?q=TIRED");
+  assert.equal(body.q, "tired");
+  assert.equal(body.total, 1);
+  assert.deepEqual(body.games, [
+    {
+      game_id: GAME.game_id,
+      mode: "normal",
+      modeName: "Normal",
+      n_players: 1,
+      status: "done",
+      started_at: GAME.started_at,
+      durationMs: 234786,
+    },
+  ]);
+  // Not limited by the top-bar filters or mode: hints on, multiplayer,
+  // other modes all match. Newest first.
+  const all = (await get("/games/search?q=-game&hintsOff=1&mode=normal")).body;
+  assert.deepEqual(ids(all), [ULTRA, SECOND]);
+  assert.equal(all.games[0].n_players, 2);
+  assert.equal(all.games[1].durationMs, null); // unfinished
+
+  const url = encodeURIComponent(
+    `https://setwithforks.com/game/${GAME.game_id}`,
+  );
+  assert.deepEqual(ids((await get(`/games/search?q=${url}`)).body), [
+    GAME.game_id,
+  ]);
+  // The same id on the other site is a different game.
+  const swf = encodeURIComponent(
+    `https://setwithfriends.com/game/${GAME.game_id}`,
+  );
+  assert.equal((await get(`/games/search?q=${swf}`)).body.total, 0);
+
+  assert.deepEqual((await get("/games/search?q=%20")).body, {
+    q: "",
+    total: 0,
+    games: [],
+  });
+  assert.equal((await get("/games/search?q=nothing-like-it")).body.total, 0);
+});
+
 test("games/:id: find times and tiles; unknown id is a 404", async () => {
   const { body } = await get(`/games/${GAME.game_id}`);
   assert.equal(body.sets, 25);
