@@ -95,17 +95,22 @@ Motivation: one long pageable list of 17,000 games was clunky. What I actually d
 ### What was built
 
 - **Recent games** (`GamesList.jsx`): 10 rows, newest first, with Load more adding 10 at a time. Columns and tags as before. The table is now `GameTable.jsx`, shared with the day panel.
-- **Search** (`GameSearch.jsx`), at the top of that card: "Find a game by id or link". It searches on the server for any started game whose id contains the text, case-insensitive, whatever the top-bar filters and mode, solo or not. It lists the 10 newest matches (date and time, mode, players when more than one, time or "unfinished", and the id), each opening the game dialog, with how many matched in all. It searches 250 ms after typing stops.
-- **Pasted URLs:** `gameIdQuery` (`lib/config.js`) reads `…/game/<id>` on either site as that game's local id, with `swf:` for setwithfriends, and `…/games/<id>` (this UI's own game page) as a local id.
-- **API:** `GET /api/games/search?q` returns `q` as searched, `total` and `games`.
+- **Search** (`GameSearch.jsx`), at the top of that card: "Find a game by id or link". It searches on the server for any started game whose id contains the text, case-insensitive, whatever the top-bar filters and mode, solo or not. It searches 250 ms after typing stops.
+- **Play again series:** matches are grouped by series and shown one row per series (`seriesBase`, `groupSeries` in `lib/search.js`). "Play again" starts a game whose id is the first game's id plus `-1`, `-2` and so on, so `abandoned-tired-property` and `abandoned-tired-property-1` … `-16` are one series. Each row shows the series' head game (date and time, mode, players when more than one, time or "unfinished", and the id) and, when more of the series matched, a "Show 16 more Play again games" button that lists them under it, newest first. Every game opens the game dialog. The 10 series with the newest matches are shown, with how many games and series matched in all.
+- **Pasted URLs:** `gameIdQuery` (`lib/search.js`) reads `…/game/<id>` on either site as that game's local id, with `swf:` for setwithfriends, and `…/games/<id>` (this UI's own game page) as a local id.
+- **API:** `GET /api/games/search?q` returns `q` as searched, `total` (games), `seriesTotal` and `series` (`base`, `head`, `more`). With `&series=<base>` it returns `games`, every match in that series.
 - **Records** (`Records.jsx`): every game that set a new best game time, newest first: the date (opening the game), the time, and how much it beat the previous best ("4.1 s"; the first is "first finish"). About 8 rows show and the rest scroll inside the card. It follows the top-bar filters and not the trend's Range. `/summary` returns `records`, from `records()` in `lib/metrics.js`, which `recordGameIds` (the chart's diamonds and the Best time badge) now uses, so the two always agree.
 
 ### Decisions log
 
-1. **The id shown in search results** is the full local id, so it's clear why each matched.
-2. **Results sit in an outlined box** above the Recent games table. Without it the matches read as the first rows of Recent games.
-3. **Ties are not records**, as before: a game equal to the best time doesn't get a diamond or a row.
-4. **The Records table is a focusable region**, so it can be scrolled with the keyboard, as well as by tabbing through its links.
+1. **Play again games are collapsed under their series.** 80% of started games (18,164 of 22,777, in 3,009 series, the longest 230 games) are Play again games. Searching a first game's id matched every game in its series, and since results were newest first and capped at 10, the first game itself was never shown, even when its id or URL was pasted exactly. Ranking exact matches first was the alternative; grouping was chosen so one series takes one row, whatever is searched.
+2. **The head is the series' first game when it matched**, otherwise its oldest match: searching `public-pumped-purpose-12` matches `-12` and `-120` to `-129`, and `-12` heads them. A series is listed by its newest match, so a head's date can be older than the row below it.
+3. **The other matches load when the series is opened** (`series=`), so a search that matches thousands of games stays one small response.
+4. **The id shown in search results** is the full local id, so it's clear why each matched.
+5. **On phones each result is two lines**, date and time, then mode and id, so the time doesn't wrap onto a line of its own.
+6. **Results sit in an outlined box** above the Recent games table. Without it the matches read as the first rows of Recent games.
+7. **Ties are not records**, as before: a game equal to the best time doesn't get a diamond or a row.
+8. **The Records table is a focusable region**, so it can be scrolled with the keyboard, as well as by tabbing through its links.
 
 ## 6. Layout
 

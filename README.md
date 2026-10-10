@@ -155,7 +155,7 @@ builds the web app and starts a local server at http://localhost:3000 (set `PORT
   - an activity calendar. click a day to list that day's games and times
   - a pace or game time trend with a rolling mean, median or aoX. its **Range** is either a date range or a number of recent games, and the line under it says how many games that covers
   - a by-window table (the same numbers as `npm run stats`) and your records: every new best game time, with how much it beat the last one
-  - your most recent games, and a search box that finds any game by part of its id, or by a link to it pasted from the site
+  - your most recent games, and a search box that finds any game by part of its id, or by a link to it pasted from the site. "Play again" games are grouped under the game they followed
 - a page per game with the time you took for each set, and a step-through replay of the board at each of your finds (normal mode)
 - a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, whether you take sets with newly dealt cards, and where on the board you pick cards from
 
