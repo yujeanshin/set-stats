@@ -4,6 +4,8 @@ import {
   addDays,
   calendarRange,
   calendarThresholds,
+  daySummary,
+  fastestGame,
   aoX,
   BREAK_FACTOR,
   breakFlags,
@@ -15,6 +17,7 @@ import {
   localDayKey,
   mean,
   median,
+  onDay,
   recordGameIds,
   recentAverage,
   rolling,
@@ -188,6 +191,55 @@ test("headline deltas use each tile's own rule for the last 5", () => {
   near(h.pace.delta, -500);
   // Finished: 0-9 and 11. Last 5: 7, 8, 9, 11 and 6; before: 1-5.
   near(h.gameTime.delta, (6 + 7 + 8 + 9 + 11 - (1 + 2 + 3 + 4 + 5)) * 200);
+});
+
+test("fastestGame: lowest finished time, the older game on a tie", () => {
+  assert.equal(fastestGame(GAMES).game_id, "e");
+  const tie = [...GAMES, game("f", T0 + 4 * DAY, 180_000, [1])];
+  assert.equal(fastestGame(tie).game_id, "e");
+  assert.equal(fastestGame([GAMES[2]]), null); // unfinished only
+  assert.equal(fastestGame([]), null);
+});
+
+test("onDay keeps the games started on that local day in the zone", () => {
+  const ids = (gs) => gs.map((g) => g.game_id);
+  // d and e start Aug 13 in New York (noon and 1 PM).
+  assert.deepEqual(ids(onDay(GAMES, "2026-08-13", "America/New_York")), [
+    "d",
+    "e",
+  ]);
+  // In Tokyo, c (Aug 12, 4 PM UTC) is already Aug 13; d and e are Aug 14.
+  assert.deepEqual(ids(onDay(GAMES, "2026-08-13", "Asia/Tokyo")), ["c"]);
+  assert.deepEqual(onDay(GAMES, "2026-01-01", "UTC"), []);
+});
+
+test("daySummary: count every game, times from the timed ones only", () => {
+  const [, , c, d, e] = GAMES;
+  assert.deepEqual(daySummary([c, d, e], [c, d, e]), {
+    games: 3,
+    finished: 2,
+    leftOut: 0,
+    paceMs: 9_500, // mean of c's 8k and d's 11k; e has no finds
+    bestMs: 180_000,
+    bestGameId: "e",
+  });
+  // e left out (say for bad timing): still counted, not in the times.
+  assert.deepEqual(daySummary([c, d, e], [c, d]), {
+    games: 3,
+    finished: 2,
+    leftOut: 1,
+    paceMs: 9_500,
+    bestMs: 220_000,
+    bestGameId: "d",
+  });
+  assert.deepEqual(daySummary([], []), {
+    games: 0,
+    finished: 0,
+    leftOut: 0,
+    paceMs: null,
+    bestMs: null,
+    bestGameId: null,
+  });
 });
 
 test("records are games that set a new best finished time", () => {

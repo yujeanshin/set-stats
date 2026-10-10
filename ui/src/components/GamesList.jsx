@@ -1,79 +1,15 @@
 // Games table (brief 6.8): newest first, 20 rows at a time, each linking to
 // its single game view. The current fastest game gets a "Best time" badge.
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Link,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
-import { Link as RouterLink, useLocation } from "react-router-dom";
+import { Alert, Box, Button, Paper, Typography } from "@mui/material";
 import { getJson } from "../api.js";
 import { useFilters } from "../filters.js";
-import { clock, dateTime, secs } from "../format.js";
-import { colors } from "../theme.js";
+import GameTable from "./GameTable.jsx";
 
 const PAGE = 20;
 
-const num = { fontFamily: "mono", fontSize: 14, textAlign: "right", py: 0 };
-
-export function BestBadge() {
-  return (
-    <Box
-      component="span"
-      sx={{
-        ml: 0.75,
-        px: 1,
-        py: "2px",
-        border: `1.5px solid ${colors.record}`,
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        // Darker than the record orange so the text passes 4.5:1 on white.
-        color: "#8a4700",
-        whiteSpace: "nowrap",
-      }}
-    >
-      Best time
-    </Box>
-  );
-}
-
-/** On a game whose timestamps are off; the time stats skip it by default. */
-export function BadTimingTag() {
-  return (
-    <Box
-      component="span"
-      title="Two sets in this game are under 100 ms apart, which no one can do, so its times are off. Skip bad timing leaves it out of the stats."
-      sx={{
-        ml: 0.75,
-        px: 1,
-        py: "2px",
-        border: `1.5px solid ${colors.controlBorder}`,
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        color: "text.secondary",
-        whiteSpace: "nowrap",
-        cursor: "help",
-      }}
-    >
-      Bad timing
-    </Box>
-  );
-}
-
 export default function GamesList() {
   const [filters] = useFilters();
-  const location = useLocation();
-  const { search } = location;
   const [state, setState] = useState({ games: [], total: null, best: null });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -134,71 +70,11 @@ export default function GamesList() {
         Games
       </Typography>
       {error ? <Alert severity="error">{error.message}</Alert> : null}
-      <Box sx={{ overflowX: "auto" }}>
-        <Table sx={{ minWidth: 600 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Played</TableCell>
-              <TableCell align="right">Sets</TableCell>
-              <TableCell align="right">Time</TableCell>
-              <TableCell align="right">Pace</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {games.map((g) => {
-              const done = g.status === "done";
-              return (
-                <TableRow key={g.game_id}>
-                  <TableCell sx={{ py: 0 }}>
-                    <Link
-                      component={RouterLink}
-                      to={{ pathname: `/games/${g.game_id}`, search }}
-                      // Opens as a dialog over this list (App.jsx).
-                      state={{ backgroundLocation: location }}
-                      underline="hover"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        minHeight: 44,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {dateTime(g.started_at)}
-                    </Link>
-                  </TableCell>
-                  <TableCell sx={num}>{g.sets}</TableCell>
-                  <TableCell
-                    sx={{
-                      ...num,
-                      color: done ? undefined : "text.secondary",
-                    }}
-                  >
-                    {done ? clock(g.durationMs) : "n/a"}
-                  </TableCell>
-                  <TableCell sx={num}>
-                    {g.paceMs == null ? "–" : `${secs(g.paceMs)} s`}
-                  </TableCell>
-                  <TableCell
-                    sx={{ py: 0, color: done ? undefined : "text.secondary" }}
-                  >
-                    {done ? "Done" : "Unfinished"}
-                    {g.game_id === best ? <BestBadge /> : null}
-                    {g.bad_timing ? <BadTimingTag /> : null}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {total === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} sx={{ color: "text.secondary" }}>
-                  No games match these filters.
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
-      </Box>
+      <GameTable
+        games={games}
+        best={best}
+        empty={total === 0 ? "No games match these filters." : null}
+      />
       {total != null && games.length < total ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
           <Button

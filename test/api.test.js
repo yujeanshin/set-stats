@@ -197,6 +197,51 @@ test("calendar: one key per local day, bad zone is a 400", async () => {
   assert.match(bad.body.error, /time zone/);
 });
 
+test("day: every game that day, times without bad timing, a 400 for bad input", async () => {
+  // The fixture game started Aug 17, 2026 at 15:41 UTC; the second a day later.
+  const q = "/day?hintsOff=0&tz=UTC";
+  const { body } = await get(`${q}&date=2026-08-17`);
+  assert.equal(body.date, "2026-08-17");
+  assert.deepEqual(
+    body.games.map((g) => g.game_id),
+    [GAME.game_id],
+  );
+  assert.equal(body.games[0].sets, 25);
+  assert.deepEqual(body.summary, {
+    games: 1,
+    finished: 1,
+    leftOut: 0,
+    paceMs: 9391.44,
+    bestMs: 234786,
+    bestGameId: GAME.game_id,
+  });
+  assert.equal(body.bestGameId, GAME.game_id);
+
+  // The second game is unfinished: counted, no best time.
+  const next = (await get(`${q}&date=2026-08-18`)).body;
+  assert.deepEqual(
+    next.games.map((g) => g.game_id),
+    [SECOND],
+  );
+  assert.equal(next.summary.bestMs, null);
+  assert.equal(next.bestGameId, GAME.game_id);
+
+  // Top-bar filters apply: hints on is left out by default.
+  assert.equal((await get("/day?tz=UTC&date=2026-08-18")).body.games.length, 0);
+  // Days are local: 15:41 UTC on Aug 17 is already Aug 18 in Kiritimati (+14).
+  const east = (
+    await get("/day?hintsOff=0&tz=Pacific/Kiritimati&date=2026-08-18")
+  ).body;
+  assert.deepEqual(
+    east.games.map((g) => g.game_id),
+    [GAME.game_id],
+  );
+
+  assert.equal((await get(`${q}&date=Aug-17`)).status, 400);
+  assert.equal((await get(`${q}`)).status, 400);
+  assert.equal((await get("/day?tz=Mars/Olympus&date=2026-08-17")).status, 400);
+});
+
 test("series: range then last N, records over all games, rolling needs X", async () => {
   const both = (await get("/series?hintsOff=0&window=5")).body;
   assert.equal(both.metric, "pace");
