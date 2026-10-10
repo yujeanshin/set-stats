@@ -162,7 +162,6 @@ one row per game and type, summed over my finds in that game. every column adds 
 | `type_key` | TEXT    | the `diff_mask`, or the `n_diff` or `n_fresh` as text                                                                    |
 | `picks`    | INTEGER | finds where the chosen set is of this type                                                                               |
 | `expected` | REAL    | sum over finds of (sets of this type on the board / `finds.n_sets`): picks if I chose uniformly among the available sets |
-| `present`  | INTEGER | finds with at least one set of this type on the board                                                                    |
 
 primary key `(game_id, kind, type_key)`. `fresh` rows leave out the game's first find, where `n_fresh` is NULL. over each kind, `expected` sums to `picks`, which sums to the number of finds (minus the first find for `fresh`).
 
