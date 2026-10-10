@@ -5,8 +5,8 @@ import Tile from "./Tile.jsx";
 
 // Most glanced at first (brief-v3 item 1).
 const LABELS = [
-  "Average pace, last 5 games",
   "Average game time, last 5 games",
+  "Average pace, last 5 games",
   "Fastest game",
   "Games finished / started",
 ];
@@ -47,18 +47,17 @@ export default function HeadlineTiles({ summary }) {
     ? [
         {
           label: LABELS[0],
+          value: shortClock(h.gameTime.avg),
+          suffix: plusMinus(h.gameTime.sd, shortClock),
+          note: deltaText(h.gameTime.delta, "time"),
+        },
+        {
+          label: LABELS[1],
           value: secs(h.pace.avg),
           suffix: [plusMinus(h.pace.sd, secs), "s / set"]
             .filter(Boolean)
             .join(" "),
           note: deltaText(h.pace.delta, "pace"),
-          accent: true,
-        },
-        {
-          label: LABELS[1],
-          value: shortClock(h.gameTime.avg),
-          suffix: plusMinus(h.gameTime.sd, shortClock),
-          note: deltaText(h.gameTime.delta, "time"),
         },
         {
           label: LABELS[2],
