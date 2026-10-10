@@ -317,32 +317,37 @@ test("summary: records, newest first, with how much each beat the last", async (
 });
 
 test("games/search: any started game by part of its id, or a pasted URL", async () => {
-  const ids = (body) => body.games.map((g) => g.game_id);
+  const heads = (body) => body.series.map((s) => s.head.game_id);
   const { body } = await get("/games/search?q=TIRED");
   assert.equal(body.q, "tired");
   assert.equal(body.total, 1);
-  assert.deepEqual(body.games, [
+  assert.equal(body.seriesTotal, 1);
+  assert.deepEqual(body.series, [
     {
-      game_id: GAME.game_id,
-      mode: "normal",
-      modeName: "Normal",
-      n_players: 1,
-      status: "done",
-      started_at: GAME.started_at,
-      durationMs: 234786,
+      base: GAME.game_id,
+      head: {
+        game_id: GAME.game_id,
+        mode: "normal",
+        modeName: "Normal",
+        n_players: 1,
+        status: "done",
+        started_at: GAME.started_at,
+        durationMs: 234786,
+      },
+      more: 0,
     },
   ]);
   // Not limited by the top-bar filters or mode: hints on, multiplayer,
   // other modes all match. Newest first.
   const all = (await get("/games/search?q=-game&hintsOff=1&mode=normal")).body;
-  assert.deepEqual(ids(all), [ULTRA, SECOND]);
-  assert.equal(all.games[0].n_players, 2);
-  assert.equal(all.games[1].durationMs, null); // unfinished
+  assert.deepEqual(heads(all), [ULTRA, SECOND]);
+  assert.equal(all.series[0].head.n_players, 2);
+  assert.equal(all.series[1].head.durationMs, null); // unfinished
 
   const url = encodeURIComponent(
     `https://setwithforks.com/game/${GAME.game_id}`,
   );
-  assert.deepEqual(ids((await get(`/games/search?q=${url}`)).body), [
+  assert.deepEqual(heads((await get(`/games/search?q=${url}`)).body), [
     GAME.game_id,
   ]);
   // The same id on the other site is a different game.
@@ -354,9 +359,50 @@ test("games/search: any started game by part of its id, or a pasted URL", async 
   assert.deepEqual((await get("/games/search?q=%20")).body, {
     q: "",
     total: 0,
-    games: [],
+    seriesTotal: 0,
+    series: [],
   });
   assert.equal((await get("/games/search?q=nothing-like-it")).body.total, 0);
+});
+
+test("games/search: a Play again series is one result, headed by its first game", async () => {
+  // A Play again game after the ultraset game: multiplayer, so no solo
+  // stats in the other tests see it.
+  const AGAIN = `${ULTRA}-1`;
+  db.prepare(
+    `INSERT INTO games (game_id, mode, status, enable_hint, created_at,
+       started_at, ended_at, n_players)
+     VALUES (?, 'ultraset', 'done', 0, ?, ?, ?, 2)`,
+  ).run(
+    AGAIN,
+    raw.created_at + 3 * DAY,
+    GAME.started_at + 3 * DAY,
+    GAME.started_at + 3 * DAY + 60_000,
+  );
+
+  const { body } = await get("/games/search?q=ultra");
+  assert.equal(body.total, 2);
+  assert.equal(body.seriesTotal, 1);
+  assert.equal(body.series.length, 1);
+  assert.equal(body.series[0].base, ULTRA);
+  assert.equal(body.series[0].head.game_id, ULTRA); // older, but the first
+  assert.equal(body.series[0].more, 1);
+
+  // Only the Play again game matches: it heads its series on its own.
+  const one = (await get(`/games/search?q=${AGAIN}`)).body;
+  assert.equal(one.series[0].head.game_id, AGAIN);
+  assert.equal(one.series[0].more, 0);
+
+  // Expanding the series lists every match in it, newest first.
+  const series = (await get(`/games/search?q=ultra&series=${ULTRA}`)).body;
+  assert.equal(series.base, ULTRA);
+  assert.deepEqual(
+    series.games.map((g) => g.game_id),
+    [AGAIN, ULTRA],
+  );
+  assert.equal(series.games[0].durationMs, 60_000);
+  const none = (await get("/games/search?q=ultra&series=nope")).body;
+  assert.deepEqual(none.games, []);
 });
 
 test("games/:id: find times and tiles; unknown id is a 404", async () => {
