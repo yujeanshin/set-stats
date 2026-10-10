@@ -197,6 +197,8 @@ test("a re-synced game gets its new events, and its stale derived rows are remov
     db.prepare("SELECT * FROM games WHERE game_id = ?").get(GAME.game_id),
   );
   assert.equal(count(db, "finds"), 25);
+  assert.ok(count(db, "game_set_types") > 0);
+  assert.equal(count(db, "my_find_types"), 25);
 
   const updated = fixtureRaw();
   const data = JSON.parse(updated.data_json);
@@ -220,5 +222,8 @@ test("a re-synced game gets its new events, and its stale derived rows are remov
     "-P-Fzzzz",
   );
   assert.equal(count(db, "finds"), 0);
+  // The set-type tables go with the finds (cascade, and a trigger).
+  assert.equal(count(db, "game_set_types"), 0);
+  assert.equal(count(db, "my_find_types"), 0);
   assert.equal(count(db, "board_sets"), 0);
 });

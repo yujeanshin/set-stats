@@ -365,3 +365,22 @@ test("types: my finds by type, with the top-bar filters, range and last N", asyn
 
   assert.equal((await get("/types?lastN=two")).status, 400);
 });
+
+test("types: says to rebuild until the saved tables are current", async () => {
+  const stale = memoryDb();
+  insertRaw(stale, fixtureRaw());
+  loadAll(stale);
+  rebuildDerived(stale);
+  stale
+    .prepare("UPDATE meta SET value = '1' WHERE key = 'derive_version'")
+    .run();
+  const app = express().use("/api", createApi(new Queries(stale)));
+  const s = app.listen(0, "127.0.0.1");
+  await new Promise((resolve) => s.once("listening", resolve));
+  const res = await fetch(`http://127.0.0.1:${s.address().port}/api/types`);
+  const body = await res.json();
+  s.close();
+  assert.equal(res.status, 200);
+  assert.equal(body.needsRebuild, true);
+  assert.equal(body.patterns, undefined);
+});

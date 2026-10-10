@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { rebuildDerived } from "../lib/derive.js";
+import { DERIVE_VERSION, rebuildDerived, saveSetTypes } from "../lib/derive.js";
 import { loadAll } from "../lib/load.js";
 import { Queries } from "../lib/queries.js";
 import { setMeta } from "../lib/schema.js";
@@ -101,11 +101,19 @@ function typeFixture() {
          VALUES ('typed', ?, ?, 0, 1, 2, ?, ?)`,
       ).run(seq, nextSet(mask), i === 0 ? 1 : 0, fresh);
   }
+  saveSetTypes(db, "typed");
+  setMeta(db, "derive_version", DERIVE_VERSION);
   return db;
 }
 
 const totalOf = (totals, kind, key) =>
   totals.find((t) => t.kind === kind && t.type_key === key);
+
+test("set types: nothing until the saved tables are current", () => {
+  const db = typeFixture();
+  setMeta(db, "derive_version", null);
+  assert.equal(new Queries(db).setTypes(["typed"]), null);
+});
 
 test("set types: O, E and present on a hand-built game", () => {
   const { totals, chosen } = new Queries(typeFixture()).setTypes(["typed"]);
@@ -134,7 +142,9 @@ test("set types: O, E and present on a hand-built game", () => {
   // Someone else's find (0001) is not counted anywhere.
   assert.equal(totalOf(totals, "mask", "0001"), undefined);
   assert.deepEqual(
-    chosen.map((c) => [c.seq, c.diff_mask, c.n_diff, c.n_fresh, c.elapsed_ms]),
+    chosen
+      .toSorted((a, b) => a.seq - b.seq)
+      .map((c) => [c.seq, c.diff_mask, c.n_diff, c.n_fresh, c.elapsed_ms]),
     [
       [0, "1000", 1, null, 1000],
       [1, "0110", 2, 1, 2000],
