@@ -93,11 +93,10 @@ export default function OverTime() {
   const pace = metric === "pace";
   const fmt = pace ? secs : signedClock;
   const unit = pace ? "s" : "";
-  const title = pace ? "Pace trend" : "Game time trend";
   return (
     <Paper
       component="section"
-      aria-label={title}
+      aria-labelledby="trend-title"
       sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 3 }}
     >
       <Stack
@@ -117,8 +116,8 @@ export default function OverTime() {
           spacing={2}
           sx={{ alignItems: "center", flexWrap: "wrap" }}
         >
-          <Typography variant="h2" component="h2">
-            {title}
+          <Typography id="trend-title" variant="h2" component="h2">
+            Trend
           </Typography>
           <ToggleButtonGroup
             exclusive
