@@ -1,6 +1,6 @@
 # set stats web UI: version 3
 
-Version 3 reworks the Solo page on top of version 1 ([brief.md](brief.md)) and version 2 ([brief-v2.md](brief-v2.md)), in six changes. This file records what each change built, why, and the decisions behind it, in the same style as the earlier decisions logs. Where this file and an earlier brief disagree, this file wins.
+Version 3 reworks the Solo page on top of version 1 ([brief.md](brief.md)) and version 2 ([brief-v2.md](brief-v2.md)) in seven changes, then the Set types page in an eighth. This file records what each change built, why, and the decisions behind it, in the same style as the earlier decisions logs. Where this file and an earlier brief disagree, this file wins.
 
 1. **Headline tiles**: averages first, with a change against the 5 games before.
 2. **Data updated**: when the data on screen last changed, in the header.
@@ -9,6 +9,7 @@ Version 3 reworks the Solo page on top of version 1 ([brief.md](brief.md)) and v
 5. **Recent games, search and Records**: in place of one long games list.
 6. **Layout**: the position heatmap moves to the Set types page; Records takes its place.
 7. **Drop breaks on by default.**
+8. **Set types: blind spots, position heatmap and a trend**: blind spots in words, the heatmap over the page's games, and a trend of ratio and find time.
 
 The working conventions are unchanged: metric math lives in `lib/` and is unit tested, the React app only formats and draws, and filters live in the URL. Everything new is a real button, link or input with a label and can be reached by keyboard. Existing components were not audited; that is a separate accessibility pass.
 
@@ -124,7 +125,7 @@ Motivation: the position heatmap is analysis, not a summary, and under the chart
 ### What was built
 
 - **Solo page**, top to bottom: filters, headline tiles, calendar (with its day panel), trend, By window beside Records, Recent games.
-- **Where I pick from** moves, unchanged, to the bottom of the Set types page. It follows the top-bar filters but not that page's Range. The next change reworks it.
+- **Where I pick from** moves, unchanged, to the bottom of the Set types page. It follows the top-bar filters but not that page's Range. Item 8 reworks it.
 
 ### Decisions log
 
@@ -142,8 +143,50 @@ Motivation: the position heatmap is analysis, not a summary, and under the chart
 
 1. **The break rule itself is unchanged** (brief-v2 decision 11). A long gap in a game with very few gaps can still escape it, because it pulls up the median it is measured against; a fix for that was looked at and set aside for now.
 
+## 8. Set types: blind spots, position heatmap and a trend
+
+Motivation, per change:
+
+- **Blind spots:** "E 2,438" means nothing without the number of picks beside it.
+- **Position heatmap:** I want to know whether I'm biased toward noticing cards in certain board positions, over the same games as the rest of this page.
+- **Trend:** the ratios have no basis for comparison. I want to see whether they have changed, and whether I've improved.
+
+### What was built
+
+- **Blind spots** read "picked 1,639, expected 2,438", then "ratio 0.67 (95% 0.64–0.70)" on the next line. No "E", and no count of how often the type appeared (brief-v2 part 2 decision 5).
+- **Where I pick from** stays last on the page and now covers the page's games: the top filters, the Range, and Skip bad timing. `GET /api/types/positions` uses the same scope as `/types` (`typeScope`) and returns `finds`, `beyond` and `shares`; the old `GET /api/positions`, which only took the top filters, is gone. The caption reads "Share of finds that used each position. A find uses 3 cards, so an even spread is 25%."
+  - **Color by distance from 25%**, above in purple and below in teal, 4 steps each way (`ui/src/positionScale.js`, tested in `test/positionScale.test.js`). Full color is at least 5 points from 25% (`MIN_EXTENT`), or as far as the farthest cell when one is farther. A key under the grid shows the steps and the two ends (≤20.0%, ≥30.0%).
+  - Every cell keeps its percentage. Its accessible name adds the distance: "Position 8: 27.1%, 2.1 points above even".
+- **Trend** (`TypeTrend.jsx`), between the four summary tiles and Blind spots: four lines, one per `n_diff` group, over the page's games, oldest to newest.
+  - **Buckets of games, not of days** (`trendBuckets`, `lib/setTypes.js`): size = max(200, ceil(games / 30)), counted back from the newest game so the latest point is full. The oldest games left over, fewer than a bucket, are dropped. With fewer than 2 buckets (400 games), the card says "A trend needs at least 400 games, two points of 200. This range has 350." instead of a chart.
+  - **A toggle, Ratio or Find time**, over the same buckets. Ratio: picks / expected per bucket on a log scale, its 95% interval as a band, and a dashed line at 1.0. Find time: the median find time of the finds where I took that kind of set, without breaks when Drop breaks is on, as in the tables' median column. Each bucket's numbers come from `typeRow`, so the ratio, interval and median are worked out exactly as in the tables (`typeTrend`).
+  - **X axis:** points evenly spaced, each labelled with its last game's day. **Tooltip:** the bucket's first and last day and its number of games, then per group the ratio, its interval, picks and expected, or the median and its n.
+  - Under the chart: "Each point is 702 games, oldest to newest; the oldest 675 games are left out, too few for a point."
+  - `GET /api/types/trend` (same filters as `/types`) returns `games`, `size`, `dropped`, `minGames` and `points`: each with `from`, `to`, `games` and four `nDiff` rows (`picks`, `expected`, `ratio`, `low`, `high`, `medianMs`, `medianN`). It reads the saved per-game `ndiff` rows of `game_set_types` and `my_find_types`, so there is no schema change.
+
+On my data (21,033 games, all time), the trend answers the motivation: "1 feature differs" fell from 1.50 in the first point to 1.21 in the latest, and "All 4 features differ" rose from 0.69 to 0.82. The median find time of every group fell, most for all four differing (9.2 s to 3.3 s).
+
+### Decisions log
+
+1. **Picks and expected come before the ratio** on a blind spot, since the ratio is one divided by the other. The two lines are in words, matching the table's column names.
+2. **The heatmap counts per request, with no saved table.** `/types/positions` joins my `my_find_types` rows to their chosen `board_sets` row and counts the three positions in JS: about 1.1 s on my data (0.6 s of it the query), where `/positions` took 3.5–5 s. Grouping the three columns in SQL took about 2 s. Saving per-game counts at derive time, as for the set types (brief-v2 part 2 decision 1), would be faster, but needs a schema change and a full rebuild; it can follow if the page feels slow.
+3. **Bad-timing games are now left out of the heatmap** while Skip bad timing is on. This replaces the heatmap part of brief-v2 decision 12: the replayed board positions of those games may not be what was on screen, as for the rest of the page (brief-v2 part 2 decision 6).
+4. **Teal for below, purple for above, grey at 25%.** Purple was already the heatmap's color and the accent. Teal (`colors.chosen` and its neighbors) is a second hue at about the same lightness per step, so the two sides look equally strong. Neutral is `#ecebee`. Each side has 4 steps, with dark text on the first two and white on the last two, and every step keeps its text at 4.5:1 or more.
+5. **Full color at 5 points from 25%, at the least.** On my data every cell is between 21% and 28% (3.7 points at most), and the last 50 and last 500 games look the same. With the scale stretched from the lowest to the highest cell, a 1-point difference looked as strong as a 4-point one. At 5 points, a cell within about 0.6 points of 25% is grey, today's 3–4 point cells are clearly but not fully colored, and a range where one cell is farther than 5 points stretches the scale to it.
+6. **The heatmap waits for `/types`.** It isn't drawn until the page's data has loaded, so on a database that needs a rebuild the page shows one message, not an empty grid.
+7. **The trend is titled "Trend"**, with its toggle beside it, like the Solo page's card (item 4). It opens on **Ratio**, the motivation, and the choice is local state, as on the Solo page.
+8. **Both views come in one response.** Switching between them doesn't wait for the server, and the medians are cheap next to reading the finds they come from.
+9. **The trend has its own request** rather than joining `/types`, so the tiles and tables don't wait for it. On my data, with breaks dropped, `/types/trend` takes 1.2–1.5 s (0.75–1.0 s without, about 0.6 s for the last 500 games): about 0.3 s per pass over the scope's games (two with breaks dropped), 0.35–0.5 s reading 472k finds from `my_find_types`, 50 ms for the per-game totals, and about 70 ms for the buckets. `/types` takes 1.3–1.8 s. Per-request aggregation over the raw tables was too slow (brief-v2 part 2 decisions 1 and 4), but this reads the saved tables like `/types` does. `typeScope` now only works out the break-free finds for routes that need medians, which saves about 0.3 s on `/types/positions` and `/types/examples`.
+10. **Each request works out the scope again.** The page makes four requests with the same filters (`/types`, `/types/examples`, `/types/trend`, `/types/positions`). A cache of the scope between requests was considered and left out: the cost is about 0.3–0.6 s a request, and a cache would have to be invalidated on rebuild.
+11. **A ratio of 0, or a band reaching 0, leaves a gap** on the log scale rather than being drawn at the bottom. A group never on the board in a bucket has no ratio, as in the tables.
+12. **Ratio ticks come from a fixed list** symmetric on the log scale (0.5, 0.67, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 2 and so on), within bounds that cover every line, band and 1.0. Find time starts at 0 s.
+13. **X labels are each point's last day**, as "Jul 2024" when the scope spans more than about 300 days, or "Jul 12" when it doesn't. The tooltip gives the exact span.
+14. **The lines don't depend on color.** Each is labelled at its end ("1 differs", "2 differ", "3 differ", "All 4"), the labels nudged apart so they never overlap, and each has its own marker: circle, triangle, square, diamond. The legend under the chart shows the line with its marker and the full name. The colors (`colors.nDiff`: `#2a78d6`, `#b85c00`, `#0f7f5e`, `#a0349b`) are each 3:1 or more against the card, and pass the dataviz validator's color-vision checks with all pairs compared, since any two lines can cross (worst pair ΔE 8.3 under protanopia, 19.8 with full color vision).
+15. **The chart is one tab stop.** It is a labelled group that names the view and how many points it has. Left and right step through the points, Home and End jump to the ends; each step shows the tooltip and a live region reads it ("Aug 3, 2026 to Aug 30, 2026 · 702 games. 1 differs: median 1.8 s, n 1,802. …"). Leaving the chart hides the tooltip, and switching view starts the chart afresh, so a tooltip from one view never shows in the other.
+16. **Tooltip lines are short enough for a phone**: the group and its ratio, then the interval, then picks and expected, each on its own line. At 390px a single line per group ran off the card.
+17. **Not in this change:** per-pattern lines and sparklines in the pattern table.
+
 ## Not changed, noted for later
 
 - The `day` param is kept when switching tabs, as the filters are. The Set types page ignores it.
-- "Where I pick from" on the Set types page doesn't follow the Range above it.
 - The Data updated time only changes on reload, since API responses are kept for the session.
