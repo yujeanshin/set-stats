@@ -10,6 +10,7 @@ import { maskLabel, nDiffLabel } from "../cardFace.js";
 import DiffMarks from "../components/DiffMarks.jsx";
 import FilterBar from "../components/FilterBar.jsx";
 import InfoTip from "../components/InfoTip.jsx";
+import Positions from "../components/Positions.jsx";
 import RangeControls, { rangeParams } from "../components/RangeControls.jsx";
 import Tile from "../components/Tile.jsx";
 import { ExampleFinds, ExamplePreview } from "../components/TypeExamples.jsx";
@@ -304,6 +305,12 @@ export default function Types() {
           </Paper>
         </>
       ) : null}
+      {/* Moved here from the Solo page (brief-v3 item 6), unchanged for
+          now: it doesn't follow the Range above. The Box stops its row
+          sizing (flex: 1 1 420px) from setting its height in this column. */}
+      <Box>
+        <Positions />
+      </Box>
     </Stack>
   );
 }
