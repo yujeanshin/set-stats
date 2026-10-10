@@ -1,8 +1,8 @@
 // Set types tab (brief-v2 part 2): which kinds of sets I pick more or less
 // often than chance, and how fast. Normal mode, solo games, my finds only.
-// Broad to specific: the 4 n_diff groups, blind spots, the 15 patterns
-// (hover one for its latest finds, click to expand it with more), then sets
-// by how many cards are fresh.
+// Broad to specific: the 4 n_diff groups, their trend, blind spots, the 15
+// patterns (hover one for its latest finds, click to expand it with more),
+// sets by how many cards are fresh, then where on the board I pick from.
 import { Alert, Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import { useApi } from "../api.js";
@@ -15,6 +15,7 @@ import RangeControls, { rangeParams } from "../components/RangeControls.jsx";
 import Tile from "../components/Tile.jsx";
 import { ExampleFinds, ExamplePreview } from "../components/TypeExamples.jsx";
 import TypeTable from "../components/TypeTable.jsx";
+import TypeTrend from "../components/TypeTrend.jsx";
 import { DEFINITIONS, INSTANT_GAP_MS } from "../definitions.js";
 import { useFilters, useTypeRange } from "../filters.js";
 import { countText, intervalText, ratioText } from "../format.js";
@@ -121,9 +122,13 @@ function BlindSpots({ keys, patterns, minExpected, onSelect }) {
                     }}
                   >
                     <span>
-                      ratio {ratioText(r.ratio)} ({intervalText(r.low, r.high)})
+                      picked {countText(r.picks)}, expected{" "}
+                      {countText(r.expected)}
                     </span>
-                    <span>E {countText(r.expected)}</span>
+                    <span>
+                      ratio {ratioText(r.ratio)} (95%{" "}
+                      {intervalText(r.low, r.high)})
+                    </span>
                   </Box>
                 </Box>
               </Button>
@@ -260,6 +265,7 @@ export default function Types() {
       {ready ? (
         <>
           <Summary rows={data.nDiff} />
+          <TypeTrend params={params} dropBreaks={filters.dropBreaks} />
           <BlindSpots
             keys={data.blindSpots}
             patterns={data.patterns}
@@ -305,12 +311,8 @@ export default function Types() {
           </Paper>
         </>
       ) : null}
-      {/* Moved here from the Solo page (brief-v3 item 6), unchanged for
-          now: it doesn't follow the Range above. The Box stops its row
-          sizing (flex: 1 1 420px) from setting its height in this column. */}
-      <Box>
-        <Positions />
-      </Box>
+      {/* Last on the page, over the same games as the rest of it. */}
+      {ready ? <Positions params={params} /> : null}
     </Stack>
   );
 }

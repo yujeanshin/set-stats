@@ -1,54 +1,90 @@
-// Where I pick from (brief 6.7): for each board position, the share of my
-// finds that used a card there. Normal mode only; the caller hides it
-// otherwise. The grid matches the board in landscape: position i is at row
-// i % 3, column floor(i / 3).
+// Where I pick from (brief 6.7, reworked in brief-v3 item 8): for each
+// board position, the share of my finds that used a card there, over the
+// Set types page's games. The grid matches the board in landscape:
+// position i is at row i % 3, column floor(i / 3). Each cell is colored by
+// its distance from an even 25%, above in purple and below in teal; the
+// percentage in every cell says the same without color.
 import { Alert, Box, Paper, Tooltip, Typography } from "@mui/material";
 import { useApi } from "../api.js";
-import { useFilters } from "../filters.js";
+import { heatExtent, heatLevel, STEPS } from "../positionScale.js";
 import { colors } from "../theme.js";
 
 const ORDER = [0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11]; // row-major cells
 
-/** Color level 0-4 by where a share sits between the lowest and highest. */
-function level(share, lo, hi) {
-  if (share == null) return 0;
-  if (hi === lo) return 2;
-  return Math.min(4, Math.floor(((share - lo) / (hi - lo)) * 5));
-}
-
 const pct = (x) => (x == null ? "–" : `${(x * 100).toFixed(1)}%`);
 
-export default function Positions() {
-  const [filters] = useFilters();
-  const res = useApi("/positions", { ...filters, mode: "normal" });
-  const data = res.data;
+/** Background and text color of a step; dark text on the lighter steps. */
+function heatColors(level) {
+  if (!level) return { bg: colors.heat.neutral, fg: colors.text };
+  const side = level > 0 ? colors.heat.above : colors.heat.below;
+  const i = Math.abs(level) - 1;
+  return { bg: side[i], fg: i >= 2 ? "#ffffff" : colors.text };
+}
+
+/** "1.5 points above even", for screen readers and the tooltip. */
+function offText(share) {
+  const points = (share - 0.25) * 100;
+  if (Math.abs(points) < 0.05) return "even";
+  return `${Math.abs(points).toFixed(1)} points ${points > 0 ? "above" : "below"} even`;
+}
+
+/** The scale under the grid: the steps from below to above, with ends. */
+function Key({ extent }) {
+  const levels = Array.from({ length: 2 * STEPS + 1 }, (_, i) => i - STEPS);
+  const lo = pct(0.25 - extent);
+  const hi = pct(0.25 + extent);
+  return (
+    <Box
+      role="img"
+      aria-label={`Color scale: teal below 25%, purple above, full color at ${lo} and ${hi} or beyond.`}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        mt: 1.25,
+        fontFamily: "mono",
+        fontSize: 12,
+        color: "text.secondary",
+      }}
+    >
+      <span aria-hidden="true">≤{lo}</span>
+      <Box sx={{ display: "flex", gap: "2px" }} aria-hidden="true">
+        {levels.map((l) => (
+          <Box
+            key={l}
+            sx={{
+              width: 14,
+              height: 10,
+              borderRadius: "2px",
+              bgcolor: heatColors(l).bg,
+            }}
+          />
+        ))}
+      </Box>
+      <span aria-hidden="true">≥{hi}</span>
+    </Box>
+  );
+}
+
+/** params: the Set types page's filters and Range, as /types takes them. */
+export default function Positions({ params }) {
+  const res = useApi("/types/positions", params);
+  const data = res.data?.needsRebuild ? null : res.data;
   const shares = data?.shares ?? [];
-  const defined = shares.filter((s) => s != null);
-  const lo = Math.min(...defined);
-  const hi = Math.max(...defined);
+  const extent = heatExtent(shares);
   return (
     <Paper
       component="section"
-      aria-label="Positions picked"
-      sx={{ p: 2.5, flex: "1 1 420px", minWidth: 0 }}
+      aria-labelledby="positions-title"
+      sx={{ p: 2.5, minWidth: 0 }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 1,
-          mb: 1.5,
-        }}
-      >
-        <Typography variant="h2" component="h2">
-          Where I pick from
-        </Typography>
-        <Typography variant="caption" component="span">
-          Share of my finds using each board position
-        </Typography>
-      </Box>
+      <Typography id="positions-title" variant="h2" component="h2">
+        Where I pick from
+      </Typography>
+      <Typography variant="caption" component="p" sx={{ mt: 0.5, mb: 1.5 }}>
+        Share of finds that used each position. A find uses 3 cards, so an even
+        spread is 25%.
+      </Typography>
       {res.error ? <Alert severity="error">{res.error.message}</Alert> : null}
       <Box
         role="table"
@@ -57,17 +93,23 @@ export default function Positions() {
           display: "grid",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: "6px",
+          maxWidth: 560,
         }}
       >
         {ORDER.map((pos) => {
           const share = shares[pos] ?? null;
-          const l = data ? level(share, lo, hi) : 0;
+          const { bg, fg } = heatColors(data ? heatLevel(share, extent) : null);
+          const label = !data
+            ? `Position ${pos + 1}: loading`
+            : share == null
+              ? `Position ${pos + 1}: no finds`
+              : `Position ${pos + 1}: ${pct(share)}, ${offText(share)}`;
           return (
             <Box
               key={pos}
               role="cell"
-              aria-label={`Position ${pos + 1}: ${pct(share)}`}
-              title={`Position ${pos + 1}`}
+              aria-label={label}
+              title={label}
               sx={{
                 py: 1.75,
                 borderRadius: "6px",
@@ -75,9 +117,8 @@ export default function Positions() {
                 fontFamily: "mono",
                 fontSize: 14,
                 fontWeight: 600,
-                bgcolor: colors.scale[l],
-                // White text only on the two darkest purples (brief 8).
-                color: l >= 3 ? "#ffffff" : "text.primary",
+                bgcolor: bg,
+                color: fg,
               }}
             >
               {data ? pct(share) : "…"}
@@ -85,8 +126,8 @@ export default function Positions() {
           );
         })}
       </Box>
+      {data ? <Key extent={extent} /> : null}
       <Typography variant="caption" component="p" sx={{ mt: 1.25 }}>
-        Even spread would be 25% per position.{" "}
         <Tooltip
           title={
             data?.beyond

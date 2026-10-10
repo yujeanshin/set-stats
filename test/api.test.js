@@ -426,18 +426,6 @@ test("games/:id: find times and tiles; unknown id is a 404", async () => {
   assert.equal((await get("/games/no-such-game")).status, 404);
 });
 
-test("positions: share of finds per position, normal mode only", async () => {
-  const { body } = await get("/positions");
-  assert.equal(body.finds, 25); // second game excluded by hints off
-  assert.equal(body.shares.length, 12);
-  assert.equal(body.beyond, 0); // fixture boards never exceed 12 cards
-  // Three picks per find, all at positions < 12, so the shares sum to 3.
-  const sum = body.shares.reduce((a, b) => a + b, 0);
-  assert.equal(sum.toFixed(9), "3.000000000");
-  assert.equal((await get("/positions?hintsOff=0")).body.finds, 35);
-  assert.equal((await get("/positions?mode=puzzle")).status, 400);
-});
-
 test("games/:id/finds: boards and sets, matched to bars by findSeqs", async () => {
   const { body } = await get(`/games/${GAME.game_id}/finds`);
   assert.equal(body.normalOnly, false);
@@ -561,12 +549,51 @@ test("types: says to rebuild until the saved tables are current", async () => {
   const app = express().use("/api", createApi(new Queries(stale)));
   const s = app.listen(0, "127.0.0.1");
   await new Promise((resolve) => s.once("listening", resolve));
-  const res = await fetch(`http://127.0.0.1:${s.address().port}/api/types`);
+  const url = `http://127.0.0.1:${s.address().port}/api/types`;
+  const res = await fetch(url);
   const body = await res.json();
+  const trend = await (await fetch(`${url}/trend`)).json();
+  const positions = await (await fetch(`${url}/positions`)).json();
   s.close();
   assert.equal(res.status, 200);
   assert.equal(body.needsRebuild, true);
   assert.equal(body.patterns, undefined);
+  assert.equal(trend.needsRebuild, true);
+  assert.equal(positions.needsRebuild, true);
+});
+
+test("types/positions: share of finds per position, over the page's scope", async () => {
+  const { body } = await get("/types/positions?mode=puzzle"); // always normal
+  assert.equal(body.mode, "normal");
+  assert.equal(body.finds, 25); // second game excluded by hints off
+  assert.equal(body.shares.length, 12);
+  assert.equal(body.beyond, 0); // fixture boards never exceed 12 cards
+  // Three picks per find, all at positions < 12, so the shares sum to 3.
+  const sum = body.shares.reduce((a, b) => a + b, 0);
+  assert.equal(sum.toFixed(9), "3.000000000");
+  assert.equal((await get("/types/positions?hintsOff=0")).body.finds, 35);
+  // The page's Range: the last game only, or a date range after the first.
+  const last = (await get("/types/positions?hintsOff=0&lastN=1")).body;
+  assert.deepEqual([last.finds, last.lastN], [10, 1]);
+  const from = GAME.started_at + 1;
+  const ranged = (await get(`/types/positions?hintsOff=0&from=${from}`)).body;
+  assert.equal(ranged.finds, 10);
+  // The finds are the same ones /types counts.
+  const types = (await get("/types?hintsOff=0&lastN=1")).body;
+  assert.equal(types.finds, last.finds);
+  // The old filter-only endpoint is gone.
+  assert.equal((await fetch(`${base}/positions`)).status, 404);
+});
+
+test("types/trend: too few games for a trend says how many it needs", async () => {
+  const { body } = await get("/types/trend?hintsOff=0");
+  assert.equal(body.mode, "normal");
+  assert.equal(body.games, 2);
+  assert.equal(body.minGames, 400);
+  assert.equal(body.size, 200);
+  assert.deepEqual(body.points, []);
+  assert.equal((await get("/types/trend")).body.games, 1);
+  assert.equal((await get("/types/trend?lastN=two")).status, 400);
 });
 
 test("types/examples: my latest finds of every pattern, newest game first", async () => {

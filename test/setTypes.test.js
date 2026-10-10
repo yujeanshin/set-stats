@@ -3,12 +3,15 @@ import { test } from "node:test";
 import {
   MASKS,
   MIN_EXPECTED,
+  TREND_MIN_GAMES,
   blindSpots,
   gammaP,
   nDiffOf,
   poissonInterval,
+  trendBuckets,
   typeRow,
   typeTables,
+  typeTrend,
 } from "../lib/setTypes.js";
 
 const near = (actual, expected, digits = 4) =>
@@ -121,4 +124,112 @@ test("typeTables fills every type, including ones missing from the totals", () =
     ],
   );
   assert.deepEqual(t.blindSpots, []);
+});
+
+test("trendBuckets: 200 games a bucket until 30 buckets would need more", () => {
+  const sizes = [400, 650, 6000, 6001, 22_000].map((n) => trendBuckets(n).size);
+  assert.deepEqual(sizes, [200, 200, 200, 201, 734]);
+  // ceil(22000 / 30) = 734: 29 full buckets, 714 games left over.
+  const big = trendBuckets(22_000);
+  assert.equal(big.buckets.length, 29);
+  assert.equal(big.dropped, 22_000 - 29 * 734);
+  assert.equal(trendBuckets(6000).buckets.length, 30);
+});
+
+test("trendBuckets: anchored at the newest game, the oldest remainder dropped", () => {
+  const { size, dropped, buckets } = trendBuckets(650);
+  assert.equal(size, 200);
+  assert.equal(dropped, 50); // the 50 oldest games
+  assert.deepEqual(buckets, [
+    [50, 250],
+    [250, 450],
+    [450, 650], // the latest bucket ends at the newest game, and is full
+  ]);
+  for (const [start, end] of buckets) assert.equal(end - start, size);
+  assert.deepEqual(trendBuckets(400).buckets, [
+    [0, 200],
+    [200, 400],
+  ]);
+});
+
+test("trendBuckets: fewer than 2 buckets is no trend", () => {
+  assert.equal(TREND_MIN_GAMES, 400);
+  for (const n of [0, 1, 200, 399])
+    assert.deepEqual(trendBuckets(n), { size: 200, dropped: n, buckets: [] });
+  const t = typeTrend(
+    Array.from({ length: 399 }, (_, i) => ({
+      game_id: `g${i}`,
+      started_at: i,
+    })),
+    [],
+    [],
+  );
+  assert.deepEqual(t.points, []);
+  assert.equal(t.minGames, 400);
+});
+
+test("typeTrend: picks, expected, ratio, interval and median per bucket", () => {
+  // 410 games: the 10 oldest are dropped, then two buckets of 200.
+  const games = Array.from({ length: 410 }, (_, i) => ({
+    game_id: `g${i}`,
+    started_at: 1000 * i,
+  }));
+  const totals = [];
+  for (let i = 0; i < 410; i++) {
+    const older = i < 210;
+    // 1 differs: picked once a game; chance would give 0.5 in the older
+    // bucket (ratio 2) and 1 in the newer (ratio 1).
+    totals.push({
+      game_id: `g${i}`,
+      type_key: "1",
+      picks: 1,
+      expected: older ? 0.5 : 1,
+    });
+    // 4 differ: never picked, 0.25 expected a game.
+    totals.push({ game_id: `g${i}`, type_key: "4", picks: 0, expected: 0.25 });
+  }
+  // A game outside the scope doesn't count.
+  totals.push({ game_id: "other", type_key: "1", picks: 99, expected: 1 });
+  const times = [
+    { game_id: "g0", n_diff: 1, elapsed_ms: 99_000 }, // dropped game
+    { game_id: "g10", n_diff: 1, elapsed_ms: 3000 },
+    { game_id: "g11", n_diff: 1, elapsed_ms: 1000 },
+    { game_id: "g12", n_diff: 1, elapsed_ms: 2000 },
+    { game_id: "g409", n_diff: 1, elapsed_ms: 5000 },
+    { game_id: "g300", n_diff: 1, elapsed_ms: 4000 },
+  ];
+  const t = typeTrend(games, totals, times);
+  assert.deepEqual([t.size, t.dropped, t.points.length], [200, 10, 2]);
+  const [older, newer] = t.points;
+  assert.deepEqual([older.from, older.to, older.games], [10_000, 209_000, 200]);
+  assert.deepEqual([newer.from, newer.to], [210_000, 409_000]);
+  assert.deepEqual(
+    older.nDiff.map((r) => r.key),
+    [1, 2, 3, 4],
+  );
+
+  const [one] = older.nDiff;
+  assert.deepEqual([one.picks, one.expected, one.ratio], [200, 100, 2]);
+  // Same interval as the tables: exact Poisson for 200 picks, over E.
+  const [lo, hi] = poissonInterval(200);
+  near(one.low, lo / 100);
+  near(one.high, hi / 100);
+  assert.deepEqual([one.medianMs, one.medianN], [2000, 3]);
+
+  const newOne = newer.nDiff[0];
+  assert.deepEqual(
+    [newOne.picks, newOne.expected, newOne.ratio],
+    [200, 200, 1],
+  );
+  assert.deepEqual([newOne.medianMs, newOne.medianN], [4500, 2]);
+
+  // Never picked: ratio 0 with an upper bound; never on the board: none.
+  const four = older.nDiff[3];
+  assert.deepEqual(
+    [four.picks, four.expected, four.ratio, four.low],
+    [0, 50, 0, 0],
+  );
+  near(four.high, poissonInterval(0)[1] / 50);
+  assert.equal(older.nDiff[1].ratio, null);
+  assert.equal(older.nDiff[1].medianMs, null);
 });
