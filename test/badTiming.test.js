@@ -108,4 +108,7 @@ test("the set types page leaves them out entirely", async () => {
   // every column, not only the find times.
   assert.equal((await get("/types")).finds, 25);
   assert.equal((await get("/types?skipBadTiming=0")).finds, 50);
+  // The position heatmap follows the page (brief-v3 item 8).
+  assert.equal((await get("/types/positions")).finds, 25);
+  assert.equal((await get("/types/positions?skipBadTiming=0")).finds, 50);
 });

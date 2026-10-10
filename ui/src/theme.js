@@ -17,6 +17,16 @@ export const colors = {
   // The chosen set in the board replay (brief-v2). Not the accent: card
   // purple is #800080 too. White text on it passes AA (4.7:1).
   chosen: "#2f7f86",
+  // The position heatmap (brief-v3 item 8), by distance from an even
+  // spread: neutral, then 4 steps each way, nearest first. Above is the
+  // accent scale; below is teal at about the same lightness. Every step
+  // keeps its text at 4.5:1 or more: dark text on the first two steps,
+  // white on the last two.
+  heat: {
+    neutral: "#ecebee",
+    above: ["#dcc3dc", "#c08ac0", "#a04da0", "#800080"],
+    below: ["#b3d7db", "#5fa9b0", "#2f7f86", "#1b555a"],
+  },
 };
 
 // 1120px of content plus 24px side padding, as a border-box width.

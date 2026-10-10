@@ -309,12 +309,8 @@ export default function Types() {
           </Paper>
         </>
       ) : null}
-      {/* Moved here from the Solo page (brief-v3 item 6), unchanged for
-          now: it doesn't follow the Range above. The Box stops its row
-          sizing (flex: 1 1 420px) from setting its height in this column. */}
-      <Box>
-        <Positions />
-      </Box>
+      {/* Last on the page, over the same games as the rest of it. */}
+      {ready ? <Positions params={params} /> : null}
     </Stack>
   );
 }
