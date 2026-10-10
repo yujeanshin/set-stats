@@ -1,6 +1,6 @@
 # set stats web UI: version 2
 
-Version 2 adds card-level views on top of version 1 ([brief.md](brief.md)), in three parts. This file records what each part built, the definitions it added and the decisions behind it, in the same style as the version 1 decisions log. Where this file and brief.md disagree about version 2, this file wins.
+Version 2 adds card-level views on top of version 1 ([brief.md](brief.md)), in three parts. This file records what each part built, the definitions it added and the decisions behind it, in the same style as the version 1 decisions log. Where this file and brief.md disagree about version 2, this file wins. Version 3, a rework of the Solo page, is in [brief-v3.md](brief-v3.md).
 
 1. **Cards**: card rendering, the chosen set on hover, and a board replay.
 2. **Set types**: which kinds of sets I pick more or less often than chance, and how fast.

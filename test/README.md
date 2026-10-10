@@ -20,7 +20,7 @@ the tests never write to `data/games.db` and never contact either site. each one
 | `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes                                             |
 | `crosscheck.test.js` | the replay agrees with each site's own code on all your games                                           |
 | `schema.test.js`     | migrating an older database; per-site `my_finds`; `parseRaw` with a deck                                |
-| `config.test.js`     | the `swf:` id prefix                                                                                    |
+| `config.test.js`     | the `swf:` id prefix; reading a pasted game link for the web UI's search                                |
 | `auth.test.js`       | token renewal and `accessToken`                                                                         |
 | `sync.test.js`       | which games sync fetches, and restoring archived games                                                  |
 | `queries.test.js`    | the web UI uses my user id on each game's site; set-type totals on a hand-built game                    |

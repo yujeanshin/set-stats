@@ -150,11 +150,16 @@ npm run ui
 
 builds the web app and starts a local server at http://localhost:3000 (set `PORT` to use another port). open it in your browser for:
 
-- a solo dashboard per game mode: headline numbers, an activity calendar, pace or game time over time with a rolling mean, median or aoX, a by-window table (the same numbers as `npm run stats`), where on the board you pick cards from (normal mode), and a list of every game
+- a solo dashboard per game mode:
+  - headline numbers: your average pace and game time over your last 5 games, each saying how it compares with the 5 before, your fastest game, and how many games you've finished
+  - an activity calendar. click a day to list that day's games and times
+  - a pace or game time trend with a rolling mean, median or aoX. its **Range** is either a date range or a number of recent games, and the line under it says how many games that covers
+  - a by-window table (the same numbers as `npm run stats`) and your records: every new best game time, with how much it beat the last one
+  - your most recent games, and a search box that finds any game by part of its id, or by a link to it pasted from the site
 - a page per game with the time you took for each set, and a step-through replay of the board at each of your finds (normal mode)
-- a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, and whether you take sets with newly dealt cards
+- a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, whether you take sets with newly dealt cards, and where on the board you pick cards from
 
-run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
+run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. the header says when the data last changed: "Data updated" is when `npm run rebuild` or `rebuild:new` last finished. the UI keeps what it has loaded until you reload the page, so reload after a rebuild. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
 
 to work on the UI itself, run `node bin/ui.js` in one terminal and `npm run ui:dev` in another. the second serves the app with hot reload and forwards API calls to the first.
 
