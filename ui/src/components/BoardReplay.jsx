@@ -12,7 +12,7 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DEFINITIONS } from "../definitions.js";
 import { secs } from "../format.js";
 import { colors } from "../theme.js";
@@ -170,8 +170,20 @@ function SetList({ find, hovered, onHover }) {
  * finds: my finds from /games/:id/finds, oldest first. step: index into
  * finds; onStep(index) moves to another. breaksDropped: tag break finds,
  * which the stats leave out (the board is the same either way).
+ * scrollIntoView: scroll to the replay once, when the page was opened at a
+ * find (the game page's ?find=<seq>, which sets the starting step).
  */
-export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
+export default function BoardReplay({
+  finds,
+  step,
+  onStep,
+  breaksDropped,
+  scrollIntoView = false,
+}) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (scrollIntoView) ref.current?.scrollIntoView({ block: "start" });
+  }, [scrollIntoView]);
   const [showSets, setShowSets] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
   const n = finds.length;
@@ -184,7 +196,12 @@ export default function BoardReplay({ finds, step, onStep, breaksDropped }) {
   const chosen = find.sets.find((s) => s.is_chosen);
   const hovered = find.sets.find((s) => s.set_id === hoveredId) ?? null;
   return (
-    <Paper component="section" aria-label="Board replay" sx={{ p: 2.5 }}>
+    <Paper
+      ref={ref}
+      component="section"
+      aria-label="Board replay"
+      sx={{ p: 2.5, scrollMarginTop: 16 }}
+    >
       <Box
         sx={{
           display: "flex",

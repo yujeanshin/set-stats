@@ -151,7 +151,8 @@ npm run ui
 builds the web app and starts a local server at http://localhost:3000 (set `PORT` to use another port). open it in your browser for:
 
 - a solo dashboard per game mode: headline numbers, an activity calendar, pace or game time over time with a rolling mean, median or aoX, a by-window table (the same numbers as `npm run stats`), where on the board you pick cards from (normal mode), and a list of every game
-- a page per game with the time you took for each set
+- a page per game with the time you took for each set, and a step-through replay of the board at each of your finds (normal mode)
+- a set types page (normal mode): which kinds of sets you take more or less often than chance would, by how many features differ and by which ones, with recent examples, and whether you take sets with newly dealt cards
 
 run `npm run sync` and `npm run rebuild:new` first; the UI reads the database tables, not the raw downloads. it opens `data/games.db` read-only, only listens on your own computer, and never contacts the site. stop it with Ctrl+C.
 
@@ -159,15 +160,15 @@ to work on the UI itself, run `node bin/ui.js` in one terminal and `npm run ui:d
 
 ### all commands
 
-| command               | what it does                                                                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`       | check that your token and user ID work on the site named by `SET_SITE`                                                                                                |
-| `npm run sync`        | download new games from the site named by `SET_SITE` (default `forks`; `swf` for setwithfriends). `-- --limit N` fetches at most N games                              |
-| `npm run stats`       | print summary stats for both sites together. `-- --drop-breaks` leaves breaks out, `-- --keep-bad-timing` keeps bad-timing games (see above)                          |
-| `npm run rebuild:new` | turn synced games into database tables, replaying only games that haven't been processed yet. fast; use this after every sync                                         |
-| `npm run rebuild`     | same, but rebuilds the board tables for every game from scratch (several seconds). use it after updating the code or `vendor/`, or if `rebuild:new` reports a problem |
-| `npm run ui`          | build and start the web UI at http://localhost:3000 (see **web UI** above)                                                                                            |
-| `npm test`            | run the tests (see [test/README.md](test/README.md))                                                                                                                  |
+| command               | what it does                                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`       | check that your token and user ID work on the site named by `SET_SITE`                                                                                                                |
+| `npm run sync`        | download new games from the site named by `SET_SITE` (default `forks`; `swf` for setwithfriends). `-- --limit N` fetches at most N games                                              |
+| `npm run stats`       | print summary stats for both sites together. `-- --drop-breaks` leaves breaks out, `-- --keep-bad-timing` keeps bad-timing games (see above)                                          |
+| `npm run rebuild:new` | turn synced games into database tables, replaying only games that haven't been processed yet. fast; use this after every sync                                                         |
+| `npm run rebuild`     | same, but rebuilds the board tables for every game from scratch (about a minute for 20,000 games). use it after updating the code or `vendor/`, or if `rebuild:new` reports a problem |
+| `npm run ui`          | build and start the web UI at http://localhost:3000 (see **web UI** above)                                                                                                            |
+| `npm test`            | run the tests (see [test/README.md](test/README.md))                                                                                                                                  |
 
 only `sync` and `check` contact a site. everything else, the web UI included, works offline from your local copy.
 
@@ -183,6 +184,7 @@ the database has:
 - every game and every selection anyone made in it, for all modes (`games`, `events`)
 - lookup tables of all 81 cards and 1080 sets (`cards`, `sets`)
 - for normal-mode games, the board at every set found and every set that was available on it (`finds`, `board_sets`, and `my_finds` for just yours)
+- for the set types page, totals per game and the type of each set you took, saved so the page is quick (`game_set_types`, `my_find_types`)
 
 see [docs/schema.md](docs/schema.md) for every table and column.
 

@@ -2,8 +2,8 @@
 
 Version 2 adds card-level views on top of version 1 ([brief.md](brief.md)), in three parts. This file records what each part built, the definitions it added and the decisions behind it, in the same style as the version 1 decisions log. Where this file and brief.md disagree about version 2, this file wins.
 
-1. **Cards** (this part): card rendering, the chosen set on hover, and a board replay.
-2. Set-type analysis page.
+1. **Cards**: card rendering, the chosen set on hover, and a board replay.
+2. **Set types**: which kinds of sets I pick more or less often than chance, and how fast.
 3. The model.
 
 Since version 2, Claude writes and commits the code directly. This replaces the "I type the code myself" rule and the stop-after-each-step build order in brief.md sections 3 and 10.
@@ -80,3 +80,57 @@ Listed for a later decision; nothing here was changed.
 - **"Drop breaks"** explains itself only in a native `title` tooltip, which touch screens never show. The game page has no filter bar, so there it is only visible as the `dropBreaks=1` URL parameter.
 - **"Where I pick from"**: the shares add up to about 300%, not 100% (three cards per find), and the caption "Even spread would be 25%" relies on that.
 - **"Range of find times"** includes breaks unless Drop breaks is on, while the dashboard pace tiles change with the same filter. The interaction isn't stated anywhere.
+
+## Part 2: set types
+
+### What was built
+
+- **Set types tab** (`/types`, `ui/src/pages/Types.jsx`), between Solo and Multiplayer in the header. Normal mode, solo games, my finds only, games that started. No model is fitted; that is part 3. From broad to specific:
+  - **Summary:** the 4 `n_diff` groups as tiles, each with its Ratio and 95% interval.
+  - **Blind spots:** up to 3 patterns with the lowest Ratio whose upper interval bound is below 1 and whose Expected is at least 30 (`MIN_EXPECTED`). If none qualify, the card says so. Clicking one opens its row in the pattern table and scrolls to it.
+  - **All 15 patterns** (`TypeTable.jsx`), grouped by `n_diff` (4 + 6 + 4 + 1). Each pattern is shown with its difference marks and a label such as "color + shape differ". Columns: Picks, Expected, Ratio with a small interval bar around 1.0 (`RatioBar.jsx`), and Median find time (n). Every column sorts. Rows with Expected under 30 are greyed, and a tooltip says why.
+  - **Examples** (`TypeExamples.jsx`): hovering a pattern shows its 3 latest finds (cards, find time, date) in a tooltip that follows the cursor. Clicking the row expands it in place, with up to 6 finds; each links to the full game page with the replay opened at that find. A chevron shows which row is open, and the open row stays with its pattern when the table is sorted.
+  - **Set after set:** the same table grouped by the `n_fresh` of the available sets (0 to 3), leaving out each game's first find.
+- **Filters:** the existing filter bar, with the mode shown as fixed. Its Drop breaks and Skip bad timing tooltips say what those filters do on this page. Below it are the date range and Last N games controls, moved out of `OverTime.jsx` into `RangeControls.jsx`. Over time keeps them in local state as before. The Set types page keeps them in the URL (`range`, `from`, `to`, `lastN`), defaulting to all time.
+- **Game page `?find=<seq>`:** opens the board replay at that find and scrolls to it. Opened from the Set types page, the back link reads "Set types" and returns there with its filters.
+- **Saved set-type tables:** `game_set_types` and `my_find_types` (schema v4, `DERIVE_VERSION` 2), filled by derive. See [schema.md](../schema.md#set-types).
+- **API:**
+  - `GET /api/types?completedOnly&hintsOff&skipBadTiming&dropBreaks&from&to&lastN` returns `nDiff`, `patterns`, `blindSpots` and `fresh` rows, plus `games`, `finds`, `freshFinds` and `minExpected`. Until the saved tables are current, it returns `needsRebuild`.
+  - `GET /api/types/examples` (same filters) returns up to 6 recent finds for every pattern at once. The page requests it as soon as `/types` has loaded, so hover previews don't wait.
+- **Math** in `lib/setTypes.js` (pure).
+
+### Definitions
+
+These match `ui/src/definitions.js` and `lib/setTypes.js`. A **type** G is a group of sets: an `n_diff` (how many features differ), a `diff_mask` (which ones), or the `n_fresh` of a set. All of the following are over my finds in scope.
+
+- **Picks (O):** finds where the chosen set is in G.
+- **Expected (E):** the sum over finds of (sets in G on the board / all sets on the board). This is how many picks G would get if I chose uniformly at random among the available sets.
+- **Ratio:** O / E. 1.0 is chance; above 1 I favor this type, below 1 I under-pick it. With E = 0 (G was never on the board) it is "–".
+- **95% interval for the ratio:** the exact (Garwood) Poisson interval for O, divided by E, with E treated as fixed: [Γ⁻¹(0.025; O), Γ⁻¹(0.975; O + 1)] / E, with 0 as the lower bound when O = 0.
+- **Median find time (n):** the median `finds.elapsed_ms` over the finds where I picked G, with how many finds that is. A find time covers the whole board, not only the type.
+- **Fresh group:** a set's `n_fresh`, the number of its cards dealt since my previous find. The first find of a game has none and is left out, so the set-after-set table covers fewer finds.
+- **Blind spot:** a pattern with E ≥ 30 whose whole 95% interval is below 1. The page shows the 3 with the lowest Ratio.
+
+Invariant, tested on the fixture and true on my data: over a full partition (the 4 `n_diff` groups, the 15 patterns, or the 4 fresh groups), total E = total O = the number of finds (minus first finds for fresh).
+
+### Decisions log
+
+1. **Set-type totals are saved at derive time.** Summing `board_sets` per request took 2.3–2.7 s for the totals, and about 11 s with the medians, on ~22,000 games. Covering indexes on `finds` and `board_sets`, and a clustered (`WITHOUT ROWID`) `board_sets`, made no difference. The cost is joining 478k finds to 1.25M board sets and grouping them by type, not the lookups. Picks and expected add up across games, so derive saves them per game (`game_set_types`) and a request only sums them. A full rebuild went from about 52 s to 60 s. An in-memory cache in the server was the alternative; the saved tables were chosen so the totals persist between runs and the first request is as fast as the rest.
+2. **No view defines them.** The definition is the `INSERT … SELECT` in `lib/derive.js`. A view would be recomputed on every read (SQLite has no materialized views), and a test comparing a table with a view of itself would check nothing. The tests use values worked out by hand instead. On my data, the saved totals and every chosen row also matched the per-request query from before exactly.
+3. **`finds` keeps its board JSON.** A narrow copy of `finds` without it saved about 40 ms on selecting my finds. The board is 85 to 125 bytes and fits in the row, so it isn't worth moving.
+4. **Medians come from `my_find_types` and are taken in JS.** Medians don't add up across games. SQL window medians took about 1.9 s for the three groupings. Reading the narrow rows (about 0.2 s) and sorting typed arrays is faster.
+5. **No take rate.** An earlier version also showed a take rate: of the finds where a set of the type was on the board, the share where I took one. It wasn't noisy (tens of thousands of finds per type), but it was confounded: it depends on how many other sets shared the board, so a type that turns up on crowded boards looks under-picked even when I favor it. On my data, sets where 2 features differ had a higher take rate than sets where 1 differs (58% against 54%), with a clearly lower Ratio (1.14 against 1.32). Ratio already allows for the rest of the board, so the take rate was removed, along with the `present` count it needed. Without `present`, derive no longer groups each find by type: each set adds 1 / n_sets to its type.
+6. **Bad-timing games are left out of the whole page** while Skip bad timing is on, not only the time column. If their sets were queued during a dropped connection, the replayed board may not match what was on screen. It is about 1% of games.
+7. **Drop breaks only changes the median column.** Which games and finds count is the same either way, so Picks, Expected and Ratio don't move.
+8. **Last N** is the N most recent games in the date range with at least one find, after the other filters, as in Over time's pace.
+9. **The date range defaults to All time** here, not 90 days as in Over time. Over 90 days, many patterns would have E < 30 and be greyed.
+10. **Sorting stays within the `n_diff` groups.** The grouping is the point of the table; the blind spots already give the overall ranking.
+11. **Labels say "fill" for shade**, to match the F mark. All four differing reads "all four differ".
+12. **The interval bar is on a log scale from 1/3 to 3**, so 0.5 and 2 are the same distance from the line at 1.0. Bounds past the ends get an arrow. On my data the intervals are narrow (often ±0.01), so most bars are little more than the dot.
+13. **The interval is computed in house** (a regularized incomplete gamma and bisection, `lib/setTypes.js`) rather than adding a statistics package. The test checks it against scipy.
+14. **Examples are newest game first, latest find first within a game.** They open the full page, not the dialog, so the replay is there. The back link knows where it came from through history state. `useFilters` now keeps that state when a filter changes the URL, so toggling Drop breaks on the game page doesn't lose it.
+15. **The tables say to rebuild instead of failing.** On a database from before schema v4, or before the next full rebuild, `/types` answers `needsRebuild`. The statements are prepared on first use, so an older database still serves the rest of the UI.
+16. **The fresh tooltip** now says "a set's cards", since fresh is shown for every set in the replay's other-sets list.
+17. **The filter bar's checkboxes now wrap** at phone width. `flexWrap` was passed to `Stack` as a prop, which current MUI no longer reads, so Skip bad timing ran off the right edge on the dashboard too.
+18. **Recent finds open under their own row, with a hover preview**, not in a panel below the table. Below the table they were out of sight when clicking an upper row, and seemed to belong to the last pattern. Considered: a side panel (the six-column table would need to slim down), a popover (covers neighboring rows, awkward on touch), a drawer (covers the table, so comparing patterns means opening and closing it) and leaving the panel but scrolling to it (still looks attached to the last row). Hover isn't available on touch screens; there, a tap expands the row.
+19. **All 15 patterns' examples come in one request, read newest games first.** Ranking every find per pattern with a window function took about 0.85 s on ~22,000 games. The query now reads the newest 64 games, then 128, 256 and so on, and stops once every pattern has 6: about 2 ms on my data. On real data it gives the same finds as the one-query version; a pattern rare in recent games would only make it read more batches.

@@ -128,14 +128,36 @@ test("derive_version is written and my_finds filters by my user", () => {
   db.prepare("UPDATE meta SET value = ? WHERE key = 'my_user_id'").run(USER);
 });
 
+test("set types are saved for my finds in each derived game", () => {
+  // The totals themselves are checked by hand in queries.test.js.
+  assert.equal(count(db, "my_find_types WHERE game_id = ?", GAME.game_id), 25);
+  assert.equal(count(db, "my_find_types WHERE n_fresh IS NULL"), 1);
+  const sums = db
+    .prepare(
+      `SELECT kind, SUM(picks) AS o, ROUND(SUM(expected), 9) AS e
+       FROM game_set_types WHERE game_id = ? GROUP BY kind ORDER BY kind`,
+    )
+    .all(GAME.game_id);
+  assert.deepEqual(sums, [
+    { kind: "fresh", o: 24, e: 24 },
+    { kind: "mask", o: 25, e: 25 },
+    { kind: "ndiff", o: 25, e: 25 },
+  ]);
+  assert.equal(count(db, "game_set_types WHERE game_id = 'shuffle-game'"), 0);
+});
+
+const SAVED = [
+  "SELECT * FROM board_sets ORDER BY game_id, seq, set_id",
+  "SELECT * FROM game_set_types ORDER BY game_id, kind, type_key",
+  "SELECT * FROM my_find_types ORDER BY game_id, seq",
+];
+
 test("rebuilding again gives the same rows", () => {
-  const before = db
-    .prepare("SELECT * FROM board_sets ORDER BY game_id, seq, set_id")
-    .all();
+  const before = SAVED.map((sql) => db.prepare(sql).all());
   rebuildDerived(db);
   assert.equal(count(db, "finds"), 25);
   assert.deepEqual(
-    db.prepare("SELECT * FROM board_sets ORDER BY game_id, seq, set_id").all(),
+    SAVED.map((sql) => db.prepare(sql).all()),
     before,
   );
 });
@@ -150,9 +172,21 @@ test("deriveNew derives only games without finds", () => {
     .prepare("SELECT * FROM board_sets ORDER BY game_id, seq, set_id")
     .all();
 
+  const types = db
+    .prepare("SELECT * FROM game_set_types ORDER BY game_id, kind, type_key")
+    .all();
   insertRaw(db, copyOfFixture("new-game"));
   loadAll(db);
   const totals = deriveNew(db);
+  assert.deepEqual(
+    db
+      .prepare(
+        "SELECT * FROM game_set_types WHERE game_id <> 'new-game' ORDER BY game_id, kind, type_key",
+      )
+      .all(),
+    types,
+  );
+  assert.equal(count(db, "my_find_types WHERE game_id = 'new-game'"), 25);
   assert.equal(totals.full, false);
   assert.equal(totals.games, 1);
   assert.equal(totals.finds, 25);

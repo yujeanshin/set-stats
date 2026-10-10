@@ -23,10 +23,11 @@ function Logo() {
   );
 }
 
-/** App name, Solo / Multiplayer tabs, last sync time (brief 6.1). */
+/** App name, Solo / Set types / Multiplayer tabs, last sync time (brief 6.1). */
 export default function Header() {
   const { pathname, search } = useLocation();
-  const tab = pathname.startsWith("/multiplayer") ? "/multiplayer" : "/";
+  const tab =
+    ["/types", "/multiplayer"].find((t) => pathname.startsWith(t)) ?? "/";
   const meta = useApi("/meta");
   return (
     <Box
@@ -65,12 +66,18 @@ export default function Header() {
             set stats
           </Typography>
         </Box>
-        <Tabs value={tab} aria-label="Game type" sx={{ ml: 2, minHeight: 44 }}>
+        <Tabs value={tab} aria-label="Pages" sx={{ ml: 2, minHeight: 44 }}>
           <Tab
             label="Solo"
             value="/"
             component={Link}
             to={{ pathname: "/", search }}
+          />
+          <Tab
+            label="Set types"
+            value="/types"
+            component={Link}
+            to={{ pathname: "/types", search }}
           />
           <Tab
             label="Multiplayer"

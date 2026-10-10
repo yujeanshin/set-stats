@@ -318,3 +318,107 @@ test("games/:id/finds: other modes are flagged, unknown ids are a 404", async ()
   assert.deepEqual(body.finds, []);
   assert.equal((await get("/games/no-such-game/finds")).status, 404);
 });
+
+test("types: my finds by type, with the top-bar filters, range and last N", async () => {
+  const sum = (rows, col) => rows.reduce((a, r) => a + r[col], 0);
+  const { body } = await get("/types?mode=puzzle"); // mode is always normal
+  assert.equal(body.mode, "normal");
+  assert.equal(body.minExpected, 30);
+  assert.deepEqual([body.from, body.to, body.lastN], [null, null, null]);
+  assert.equal(body.games, 1); // hints off leaves out the second game
+  assert.equal(body.finds, 25);
+  assert.equal(body.freshFinds, 24);
+  assert.equal(body.nDiff.length, 4);
+  assert.equal(body.patterns.length, 15);
+  assert.equal(body.fresh.length, 4);
+  for (const rows of [body.nDiff, body.patterns]) {
+    assert.equal(sum(rows, "picks"), 25);
+    assert.equal(sum(rows, "expected").toFixed(9), "25.000000000");
+    assert.equal(sum(rows, "medianN"), 25);
+  }
+  assert.equal(sum(body.fresh, "picks"), 24);
+  assert.equal(sum(body.fresh, "expected").toFixed(9), "24.000000000");
+  // 25 finds: every row is under E = 30, so none can be a blind spot.
+  assert.ok(body.patterns.every((r) => r.lowData));
+  assert.deepEqual(body.blindSpots, []);
+
+  const all = (await get("/types?hintsOff=0")).body;
+  assert.equal(all.games, 2);
+  assert.equal(all.finds, 35);
+  const done = (await get("/types?hintsOff=0&completedOnly=1")).body;
+  assert.equal(done.finds, 25);
+  const last = (await get("/types?hintsOff=0&lastN=1")).body;
+  assert.deepEqual([last.games, last.finds, last.lastN], [1, 10, 1]);
+  const from = GAME.started_at + 1;
+  const ranged = (await get(`/types?hintsOff=0&from=${from}`)).body;
+  assert.deepEqual([ranged.finds, ranged.from], [10, from]);
+  const to = (await get(`/types?hintsOff=0&to=${from}`)).body;
+  assert.equal(to.finds, 25);
+
+  // Drop breaks only changes the median column: the second game's break
+  // (seq 5) leaves it, but still counts as a pick.
+  const broken = (await get("/types?hintsOff=0&dropBreaks=1")).body;
+  assert.equal(broken.finds, 35);
+  assert.equal(sum(broken.nDiff, "picks"), 35);
+  assert.equal(sum(broken.nDiff, "medianN"), 34);
+  assert.equal(sum(all.nDiff, "medianN"), 35);
+
+  assert.equal((await get("/types?lastN=two")).status, 400);
+});
+
+test("types: says to rebuild until the saved tables are current", async () => {
+  const stale = memoryDb();
+  insertRaw(stale, fixtureRaw());
+  loadAll(stale);
+  rebuildDerived(stale);
+  stale
+    .prepare("UPDATE meta SET value = '1' WHERE key = 'derive_version'")
+    .run();
+  const app = express().use("/api", createApi(new Queries(stale)));
+  const s = app.listen(0, "127.0.0.1");
+  await new Promise((resolve) => s.once("listening", resolve));
+  const res = await fetch(`http://127.0.0.1:${s.address().port}/api/types`);
+  const body = await res.json();
+  s.close();
+  assert.equal(res.status, 200);
+  assert.equal(body.needsRebuild, true);
+  assert.equal(body.patterns, undefined);
+});
+
+test("types/examples: my latest finds of every pattern, newest game first", async () => {
+  const all = (await get("/types?hintsOff=0")).body;
+  const { body } = await get("/types/examples?hintsOff=0");
+  // One list per pattern I took, up to 6 each.
+  const taken = all.patterns.filter((p) => p.picks > 0);
+  assert.deepEqual(
+    Object.keys(body.examples).sort(),
+    taken.map((p) => p.key).sort(),
+  );
+  for (const p of taken)
+    assert.equal(body.examples[p.key].length, Math.min(6, p.picks), p.key);
+
+  // A pattern I took in both games: the second (newer) game comes first.
+  const second = (await get(`/games/${SECOND}/finds`)).body.finds;
+  const mask = taken.find(
+    (p) => p.picks > 1 && second.some((f) => f.sets[0].diff_mask === p.key),
+  ).key;
+  const finds = body.examples[mask];
+  assert.equal(finds[0].game_id, SECOND);
+  for (const [i, f] of finds.entries()) {
+    assert.equal(f.cards.length, 3);
+    if (i && f.game_id === finds[i - 1].game_id)
+      assert.ok(f.seq < finds[i - 1].seq, "latest find first");
+  }
+  // The cards are the set I took at that find.
+  const find = second.find((f) => f.seq === finds[0].seq);
+  assert.deepEqual(finds[0].cards, find.sets[0].cards);
+  assert.equal(finds[0].elapsed_ms, find.elapsed_ms);
+
+  // Hints off by default: only the fixture game.
+  const off = (await get("/types/examples")).body.examples;
+  assert.ok(
+    Object.values(off)
+      .flat()
+      .every((f) => f.game_id === GAME.game_id),
+  );
+});

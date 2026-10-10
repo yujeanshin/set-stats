@@ -3,12 +3,24 @@ import { Link as RouterLink, useLocation, useParams } from "react-router-dom";
 import GameDetails from "../components/GameDetails.jsx";
 import { contentWidth } from "../theme.js";
 
+/**
+ * Back to the games list, or to the page that opened this one when it says
+ * so in the history state (the Set types page's examples). ?find is this
+ * page's own, so it isn't carried back.
+ */
 function BackLink() {
-  const { search } = useLocation();
+  const { search, state } = useLocation();
+  const back = state?.back;
+  const params = new URLSearchParams(search);
+  params.delete("find");
   return (
     <Link
       component={RouterLink}
-      to={{ pathname: "/", search }}
+      to={
+        back
+          ? { pathname: back.pathname, search: back.search }
+          : { pathname: "/", search: params.size ? `?${params}` : "" }
+      }
       underline="none"
       sx={{
         display: "inline-flex",
@@ -32,7 +44,7 @@ function BackLink() {
       >
         <path d="M10 3 L5 8 L10 13" />
       </svg>
-      All games
+      {back?.label ?? "All games"}
     </Link>
   );
 }

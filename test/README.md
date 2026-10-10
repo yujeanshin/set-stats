@@ -10,22 +10,23 @@ the tests never write to `data/games.db` and never contact either site. each one
 
 ## files
 
-| file                 | what it checks                                                           |
-| -------------------- | ------------------------------------------------------------------------ |
-| `fixture.js`         | not a test: shared data and helpers (see below)                          |
-| `replay.test.js`     | the replay reproduces a real game exactly                                |
-| `replay-swf.test.js` | setwithfriends' board rule, against its own code on simulated games      |
-| `lookups.test.js`    | the `cards` and `sets` tables                                            |
-| `load.test.js`       | parsing `sync_raw` into `games` and `events`                             |
-| `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes              |
-| `crosscheck.test.js` | the replay agrees with each site's own code on all your games            |
-| `schema.test.js`     | migrating an older database; per-site `my_finds`; `parseRaw` with a deck |
-| `config.test.js`     | the `swf:` id prefix                                                     |
-| `auth.test.js`       | token renewal and `accessToken`                                          |
-| `sync.test.js`       | which games sync fetches, and restoring archived games                   |
-| `queries.test.js`    | the web UI uses my user id on each game's site                           |
-| `cardFace.test.js`   | which card digit is which color, shape, shade and number in the web UI   |
-| `badTiming.test.js`  | solo games with a gap under 100 ms are left out of the time stats only   |
+| file                 | what it checks                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `fixture.js`         | not a test: shared data and helpers (see below)                                                         |
+| `replay.test.js`     | the replay reproduces a real game exactly                                                               |
+| `replay-swf.test.js` | setwithfriends' board rule, against its own code on simulated games                                     |
+| `lookups.test.js`    | the `cards` and `sets` tables                                                                           |
+| `load.test.js`       | parsing `sync_raw` into `games` and `events`                                                            |
+| `derive.test.js`     | the `finds` and `board_sets` tables, and both rebuild modes                                             |
+| `crosscheck.test.js` | the replay agrees with each site's own code on all your games                                           |
+| `schema.test.js`     | migrating an older database; per-site `my_finds`; `parseRaw` with a deck                                |
+| `config.test.js`     | the `swf:` id prefix                                                                                    |
+| `auth.test.js`       | token renewal and `accessToken`                                                                         |
+| `sync.test.js`       | which games sync fetches, and restoring archived games                                                  |
+| `queries.test.js`    | the web UI uses my user id on each game's site; set-type totals on a hand-built game                    |
+| `cardFace.test.js`   | which card digit is which color, shape, shade and number in the web UI                                  |
+| `badTiming.test.js`  | solo games with a gap under 100 ms are left out of the time stats only, and of the whole set types page |
+| `setTypes.test.js`   | the set types math: the exact Poisson interval, ratio, blind spots                                      |
 
 ### `replay.test.js`
 
@@ -79,6 +80,17 @@ loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
 - `rebuild:new` derives only games without finds, re-derives re-synced games, and falls back to a full rebuild when `derive_version` doesn't match
 - a replay mismatch fails the rebuild and leaves `derive_version` unset
 - with `onError`, a mismatch is reported, the other games are still derived, and `rebuild:new` retries the failed one
+
+### `setTypes.test.js` and the set-type parts of `queries.test.js`
+
+`lib/setTypes.js` is pure, so it is tested on numbers:
+
+- the 15 patterns are grouped by `n_diff` in card feature order
+- `gammaP` and the exact (Garwood) 95% interval match scipy's `chi2.ppf` to 4 decimals, including O = 0, and stay close to O ± 1.96√O for large counts
+- ratio, interval, median, and the E < 30 flag for one row; a type never on the board has no ratio
+- blind spots: only E ≥ 30 with the whole interval below 1, lowest ratio first, at most 3
+
+`queries.test.js` builds a solo game by hand (four finds, one of them someone else's) and checks picks and expected for every pattern, `n_diff` and `n_fresh` against values worked out by hand, through derive's own `saveSetTypes`. it also checks that over each partition total E = total O = finds on the fixture game, and that nothing is returned until `derive_version` is current. `derive.test.js` and `load.test.js` check the saved rows are rebuilt identically, kept for unchanged games and cleared with a re-synced game's finds; `api.test.js` checks `/types` and `/types/examples` with each filter. `queries.test.js` also checks that reading the examples in batches of 1 game gives the same finds as one batch.
 
 ### `cardFace.test.js`
 

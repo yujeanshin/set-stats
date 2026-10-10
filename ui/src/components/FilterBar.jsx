@@ -13,9 +13,11 @@ import { useFilters } from "../filters.js";
 
 /**
  * Mode select, Completed only, Hints off only (brief 6.2), Drop breaks,
- * Skip bad timing (brief-v2).
+ * Skip bad timing (brief-v2). With `normalOnly` (the Set types page) the
+ * mode is fixed, so it is shown as text instead of a select; `notes`
+ * replace the two time filters' tooltips where they mean something else.
  */
-export default function FilterBar() {
+export default function FilterBar({ normalOnly = false, notes = {} }) {
   const [filters, setFilters] = useFilters();
   const modes = useApi("/modes");
   const list = modes.data ?? [];
@@ -37,25 +39,33 @@ export default function FilterBar() {
         <Typography id="mode-label" variant="subtitle2" component="span">
           Mode
         </Typography>
-        <Select
-          labelId="mode-label"
-          size="small"
-          value={list.some((m) => m.mode === mode) ? mode : ""}
-          onChange={(e) => setFilters({ mode: e.target.value })}
-          sx={{ minWidth: 160 }}
-        >
-          {list.map((m) => (
-            <MenuItem key={m.mode} value={m.mode}>
-              {m.name}
-            </MenuItem>
-          ))}
-        </Select>
+        {normalOnly ? (
+          <Typography
+            sx={{ minHeight: 40, display: "flex", alignItems: "center" }}
+          >
+            Normal (the only mode with boards)
+          </Typography>
+        ) : (
+          <Select
+            labelId="mode-label"
+            size="small"
+            value={list.some((m) => m.mode === mode) ? mode : ""}
+            onChange={(e) => setFilters({ mode: e.target.value })}
+            sx={{ minWidth: 160 }}
+          >
+            {list.map((m) => (
+              <MenuItem key={m.mode} value={m.mode}>
+                {m.name}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
       </Stack>
       <Stack
         direction="row"
+        useFlexGap
         spacing={2.5}
-        flexWrap="wrap"
-        sx={{ minHeight: 44, alignItems: "center" }}
+        sx={{ minHeight: 44, alignItems: "center", flexWrap: "wrap" }}
       >
         <FormControlLabel
           control={
@@ -83,7 +93,10 @@ export default function FilterBar() {
             />
           }
           label="Drop breaks"
-          title={`Leave out any gap between sets longer than ${BREAK_FACTOR}× that game's median gap, from both pace and game time`}
+          title={
+            notes.dropBreaks ??
+            `Leave out any gap between sets longer than ${BREAK_FACTOR}× that game's median gap, from both pace and game time`
+          }
         />
         <FormControlLabel
           control={
@@ -93,7 +106,10 @@ export default function FilterBar() {
             />
           }
           label="Skip bad timing"
-          title={`Leave out games with two sets under ${INSTANT_GAP_MS} ms apart, which no one can do: their timestamps are off. They stay in the games list and calendar.`}
+          title={
+            notes.skipBadTiming ??
+            `Leave out games with two sets under ${INSTANT_GAP_MS} ms apart, which no one can do: their timestamps are off. They stay in the games list and calendar.`
+          }
         />
       </Stack>
     </Paper>

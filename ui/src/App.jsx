@@ -6,9 +6,10 @@ import Header from "./components/Header.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Game from "./pages/Game.jsx";
 import Multiplayer from "./pages/Multiplayer.jsx";
+import Types from "./pages/Types.jsx";
 import { contentWidth } from "./theme.js";
 
-/** Header plus the 1120px content column used by the two tabs. */
+/** Header plus the 1120px content column used by the tabs. */
 function Shell() {
   return (
     <>
@@ -34,6 +35,7 @@ export default function App() {
       <Routes location={background ?? location}>
         <Route element={<Shell />}>
           <Route index element={<Dashboard />} />
+          <Route path="types" element={<Types />} />
           <Route path="multiplayer" element={<Multiplayer />} />
         </Route>
         <Route path="games/:id" element={<Game />} />

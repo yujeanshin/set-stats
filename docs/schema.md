@@ -1,15 +1,15 @@
 # database schema
 
-everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 3) whenever any command opens the database.
+everything lives in one SQLite file, `data/games.db`. the tables are created by `lib/schema.js` (current `schema_version`: 4) whenever any command opens the database.
 
 tables fall into four groups:
 
-| group          | tables                     | written by                      | can be rebuilt?              |
-| -------------- | -------------------------- | ------------------------------- | ---------------------------- |
-| sync cache     | `sync_raw`, `sync_skipped` | `npm run sync`                  | only by re-downloading       |
-| raw            | `games`, `events`          | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
-| static lookups | `cards`, `sets`            | automatically on open           | yes, generated from scratch  |
-| derived        | `finds`, `board_sets`      | `npm run rebuild` (derive step) | yes, from `games` + `events` |
+| group          | tables                                                   | written by                      | can be rebuilt?              |
+| -------------- | -------------------------------------------------------- | ------------------------------- | ---------------------------- |
+| sync cache     | `sync_raw`, `sync_skipped`                               | `npm run sync`                  | only by re-downloading       |
+| raw            | `games`, `events`                                        | `npm run rebuild` (load step)   | yes, from `sync_raw`         |
+| static lookups | `cards`, `sets`                                          | automatically on open           | yes, generated from scratch  |
+| derived        | `finds`, `board_sets`, `game_set_types`, `my_find_types` | `npm run rebuild` (derive step) | yes, from `games` + `events` |
 
 plus `meta` (key/value settings) and the `my_finds` view.
 
@@ -145,17 +145,53 @@ one row per set available on the board of each find.
 
 primary key `(game_id, seq, set_id)`.
 
+### set types
+
+two tables for the web UI's Set types page ([brief-v2.md](design/brief-v2.md#part-2-set-types)). they hold nothing new: derive computes them from the `board_sets` rows it just wrote, over **my finds only** (`my_finds`), so the page doesn't have to join `finds` to `board_sets` on every request. a full rebuild recreates them. they count my finds as `meta.my_user_id` (and `my_user_id:swf`) said at derive time; if those ever change, run `npm run rebuild`.
+
+a type is a group of sets: a `diff_mask` (`kind = 'mask'`, 15 patterns), an `n_diff` (`'ndiff'`, 1 to 4) or the `n_fresh` of a set (`'fresh'`, 0 to 3). types never on a game's boards have no row.
+
+#### `game_set_types`
+
+one row per game and type, summed over my finds in that game. every column adds up across games, which is what lets the page total any set of games.
+
+| column     | type    | notes                                                                                                                    |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `game_id`  | TEXT    | FK to `games`                                                                                                            |
+| `kind`     | TEXT    | `mask`, `ndiff` or `fresh`                                                                                               |
+| `type_key` | TEXT    | the `diff_mask`, or the `n_diff` or `n_fresh` as text                                                                    |
+| `picks`    | INTEGER | finds where the chosen set is of this type                                                                               |
+| `expected` | REAL    | sum over finds of (sets of this type on the board / `finds.n_sets`): picks if I chose uniformly among the available sets |
+
+primary key `(game_id, kind, type_key)`. `fresh` rows leave out the game's first find, where `n_fresh` is NULL. over each kind, `expected` sums to `picks`, which sums to the number of finds (minus the first find for `fresh`).
+
+#### `my_find_types`
+
+one row per find of mine: the chosen set's type and the find time, for medians (which don't add up across games) and example finds.
+
+| column           | type         | notes                                  |
+| ---------------- | ------------ | -------------------------------------- |
+| `game_id`, `seq` |              | PK, FK to `finds`                      |
+| `diff_mask`      | TEXT         | of the chosen set                      |
+| `n_diff`         | INTEGER      | of the chosen set                      |
+| `n_fresh`        | INTEGER NULL | of the chosen set; NULL for first find |
+| `elapsed_ms`     | INTEGER      | `finds.elapsed_ms`                     |
+
+#### keeping them in step with `finds`
+
+`my_find_types` cascades from `finds`. `game_set_types` has no row per find to cascade from, so the trigger `finds_clear_set_types` deletes a game's rows whenever one of its finds is deleted: by derive, or by the loader replacing a re-synced game's events. both tables are `WITHOUT ROWID`, clustered by game.
+
 ## meta and views
 
 ### `meta`
 
-| key              | written by | meaning                                                                                                                                                           |
-| ---------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `my_user_id`     | every open | my user id on setwithforks (`SITES.forks.uid` in `lib/config.js`)                                                                                                 |
-| `my_user_id:swf` | every open | my user id on setwithfriends (`SITES.swf.uid`)                                                                                                                    |
-| `schema_version` | every open | version of the table layout in `lib/schema.js`                                                                                                                    |
-| `derive_version` | rebuild    | version of the derive logic that produced `finds` and `board_sets`. cleared at the start of a full rebuild, so if it is missing the derived tables are incomplete |
-| `last_sync_at`   | sync       | time of the last successful sync (ms)                                                                                                                             |
+| key              | written by | meaning                                                                                                                                                                                |
+| ---------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `my_user_id`     | every open | my user id on setwithforks (`SITES.forks.uid` in `lib/config.js`)                                                                                                                      |
+| `my_user_id:swf` | every open | my user id on setwithfriends (`SITES.swf.uid`)                                                                                                                                         |
+| `schema_version` | every open | version of the table layout in `lib/schema.js`                                                                                                                                         |
+| `derive_version` | rebuild    | version of the derive logic that produced `finds`, `board_sets` and the set-type tables. cleared at the start of a full rebuild, so if it is missing the derived tables are incomplete |
+| `last_sync_at`   | sync       | time of the last successful sync (ms)                                                                                                                                                  |
 
 ### `my_finds` (view)
 
@@ -163,4 +199,4 @@ primary key `(game_id, seq, set_id)`.
 
 ## migrations
 
-schema v2 added `sync_raw.source`, `games.source` and `games.deck`. an older database gets them on its next open, with `source = 'forks'` for every existing row, so nothing is downloaded again. schema v3 added the `sync_skipped` table.
+schema v2 added `sync_raw.source`, `games.source` and `games.deck`. an older database gets them on its next open, with `source = 'forks'` for every existing row, so nothing is downloaded again. schema v3 added the `sync_skipped` table. schema v4 added `game_set_types`, `my_find_types` and the `finds_clear_set_types` trigger; they start empty, and `DERIVE_VERSION` 2 makes the next `rebuild:new` a full rebuild that fills them. until then the web UI's Set types page asks for `npm run rebuild`; the rest of the UI works as before.
