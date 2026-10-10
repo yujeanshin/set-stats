@@ -129,7 +129,10 @@ test("dropBreaks leaves a gap over 50x the median out of find times", () => {
     findSeqs: events.map((e) => e.seq),
     breakMs: 0,
     badTiming: false,
+    myFinds: 25,
   });
+  // The dropped break still counts as one of my finds.
+  assert.equal(timing.myFinds, 25);
   // a break ended by someone else still counts as break time
   const mixed = withBreak.map((e) => ({ ...e, user_id: "other" }));
   assert.deepEqual(gameTiming(game, mixed, USER, { dropBreaks: true }), {
@@ -137,6 +140,7 @@ test("dropBreaks leaves a gap over 50x the median out of find times", () => {
     findSeqs: [],
     breakMs: BREAK_MS,
     badTiming: false,
+    myFinds: 0,
   });
 });
 

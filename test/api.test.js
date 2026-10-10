@@ -139,7 +139,9 @@ test("summary: filters default to hints off, mode to most played", async () => {
 
 test("summary and game: dropBreaks removes only gaps over 50x the median", async () => {
   // The fixture game's longest gap is 11x its median: not a break.
-  const plain = (await get("/summary")).body;
+  // On by default (brief-v3), as in the UI.
+  assert.equal((await get("/summary")).body.dropBreaks, true);
+  const plain = (await get("/summary?dropBreaks=0")).body;
   const { body } = await get("/summary?dropBreaks=1");
   assert.equal(plain.dropBreaks, false);
   assert.equal(body.dropBreaks, true);
@@ -154,13 +156,16 @@ test("summary and game: dropBreaks removes only gaps over 50x the median", async
   assert.equal(game.break_ms, SECOND_BREAK_MS);
   assert.equal(game.findTimes.length, 9);
   assert.equal(game.findTimes.includes(SECOND_BREAK_MS), false);
-  const before = (await get(`/games/${SECOND}`)).body;
+  assert.equal(game.sets, 10); // the break was still a set I found
+  assert.equal((await get(`/games/${SECOND}`)).body.break_ms, SECOND_BREAK_MS);
+  const before = (await get(`/games/${SECOND}?dropBreaks=0`)).body;
   assert.equal(before.break_ms, null);
   assert.equal(before.findTimes.length, 10);
   assert.equal(before.findTimes[5], SECOND_BREAK_MS);
 
   // Pooled pace over both games drops the break.
-  const all = (await get("/summary?hintsOff=0")).body.windows.allTime;
+  const all = (await get("/summary?hintsOff=0&dropBreaks=0")).body.windows
+    .allTime;
   const dropped = (await get("/summary?hintsOff=0&dropBreaks=1")).body.windows
     .allTime;
   assert.equal(
@@ -538,7 +543,9 @@ test("types: my finds by type, with the top-bar filters, range and last N", asyn
   assert.equal(broken.finds, 35);
   assert.equal(sum(broken.nDiff, "picks"), 35);
   assert.equal(sum(broken.nDiff, "medianN"), 34);
-  assert.equal(sum(all.nDiff, "medianN"), 35);
+  const kept = (await get("/types?hintsOff=0&dropBreaks=0")).body;
+  assert.equal(sum(kept.nDiff, "medianN"), 35);
+  assert.equal(sum(all.nDiff, "medianN"), 34); // on by default
 
   assert.equal((await get("/types?lastN=two")).status, 400);
 });
