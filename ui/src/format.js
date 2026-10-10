@@ -132,3 +132,23 @@ export const countText = (n, digits = 0) =>
         minimumFractionDigits: digits,
         maximumFractionDigits: digits,
       });
+
+/**
+ * What a range covers, from the API's gameSpan: "196 games, Jul 12 to
+ * Oct 10". Years are shown when either end isn't in the current year.
+ */
+export function spanText({ games, from, to }, now = Date.now()) {
+  if (!games) return "No games in this range";
+  const year = new Date(now).getFullYear();
+  const thisYear = [from, to].every((t) => new Date(t).getFullYear() === year);
+  const day = (ms) =>
+    new Date(ms).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: thisYear ? undefined : "numeric",
+    });
+  const count = `${countText(games)} ${games === 1 ? "game" : "games"}`;
+  return day(from) === day(to)
+    ? `${count}, ${day(from)}`
+    : `${count}, ${day(from)} to ${day(to)}`;
+}

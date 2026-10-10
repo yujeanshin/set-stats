@@ -241,29 +241,13 @@ export default function Types() {
   return (
     <Stack spacing={3}>
       <FilterBar normalOnly notes={FILTER_NOTES} />
-      <Paper component="section" aria-label="Games" sx={{ p: 2.5 }}>
-        <Stack
-          direction="row"
-          useFlexGap
-          spacing={2.5}
-          sx={{ flexWrap: "wrap", alignItems: "flex-end" }}
-        >
-          <RangeControls value={range} onChange={setRange} idPrefix="types-" />
-          <Typography
-            sx={{
-              ml: "auto",
-              fontFamily: "mono",
-              fontSize: 15,
-              minHeight: 44,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {ready
-              ? `${countText(data.games)} games · ${countText(data.finds)} finds`
-              : "…"}
-          </Typography>
-        </Stack>
+      <Paper component="section" aria-label="Range" sx={{ p: 2.5 }}>
+        <RangeControls
+          value={range}
+          onChange={setRange}
+          scope={ready ? data.scope : null}
+          extra={ready ? `${countText(data.finds)} finds` : null}
+        />
       </Paper>
       {error ? <Alert severity="error">{error.message}</Alert> : null}
       {data?.needsRebuild ? (

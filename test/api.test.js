@@ -258,8 +258,15 @@ test("series: range then last N, records over all games, rolling needs X", async
   assert.equal(both.summary.change, null);
   assert.equal(both.histogram.bins.length > 0, true);
 
+  assert.deepEqual(both.scope, {
+    games: 2,
+    from: GAME.started_at,
+    to: GAME.started_at + DAY,
+  });
+
   const time = (await get("/series?hintsOff=0&metric=time")).body;
   assert.equal(time.points.length, 1); // finished games only
+  assert.equal(time.scope.games, 1);
   assert.equal(time.points[0].value, 234786);
 
   const lastOne = (await get("/series?hintsOff=0&lastN=1")).body;
@@ -413,6 +420,11 @@ test("types: my finds by type, with the top-bar filters, range and last N", asyn
   assert.equal(done.finds, 25);
   const last = (await get("/types?hintsOff=0&lastN=1")).body;
   assert.deepEqual([last.games, last.finds, last.lastN], [1, 10, 1]);
+  assert.deepEqual(last.scope, {
+    games: 1,
+    from: GAME.started_at + DAY,
+    to: GAME.started_at + DAY,
+  });
   const from = GAME.started_at + 1;
   const ranged = (await get(`/types?hintsOff=0&from=${from}`)).body;
   assert.deepEqual([ranged.finds, ranged.from], [10, from]);

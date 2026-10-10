@@ -6,6 +6,7 @@ import {
   calendarThresholds,
   daySummary,
   fastestGame,
+  gameSpan,
   aoX,
   BREAK_FACTOR,
   breakFlags,
@@ -240,6 +241,20 @@ test("daySummary: count every game, times from the timed ones only", () => {
     bestMs: null,
     bestGameId: null,
   });
+});
+
+test("gameSpan: count and the first and last start times", () => {
+  assert.deepEqual(gameSpan(GAMES), {
+    games: 5,
+    from: T0,
+    to: T0 + 3 * DAY + 3_600_000,
+  });
+  assert.deepEqual(gameSpan([GAMES[1]]), {
+    games: 1,
+    from: T0 + DAY,
+    to: T0 + DAY,
+  });
+  assert.deepEqual(gameSpan([]), { games: 0, from: null, to: null });
 });
 
 test("records are games that set a new best finished time", () => {
