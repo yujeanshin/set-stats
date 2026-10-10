@@ -1,15 +1,15 @@
 // The Range control (brief-v3 item 4), shared by the trend card, which
 // keeps its value in local state, and the Set types page, which keeps it
-// in the URL. One choice: either a date range or a number of most recent
+// in the URL. Two groups of preset buttons, Dates and Most recent games,
+// with one button pressed across both: either a date range or a number of
 // games, never both. Under it, the scope that choice gives. The parent
 // owns the value; this only draws it.
 import { useId, useState } from "react";
 import {
-  ListSubheader,
-  MenuItem,
-  Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import {
@@ -19,12 +19,14 @@ import {
   spanText,
 } from "../format.js";
 
+// Button labels are short; each group's heading (Dates, Most recent
+// games) names them for screen readers.
 export const DATE_RANGES = [
-  ["7d", "Last 7 days"],
-  ["30d", "Last 30 days"],
-  ["90d", "Last 90 days"],
+  ["7d", "7d"],
+  ["30d", "30d"],
+  ["90d", "90d"],
   ["all", "All time"],
-  ["custom", "Custom dates"],
+  ["custom", "Custom"],
 ];
 
 export const GAME_COUNTS = [50, 100, 500];
@@ -72,7 +74,7 @@ export default function RangeControls({ value, onChange, scope, extra }) {
   const { range, customFrom, customTo, lastN } = value;
   const id = useId();
   // Whether the custom count is chosen. Kept here, since a typed 100 would
-  // otherwise turn into the "Last 100 games" preset and hide the input.
+  // otherwise turn into the 100 preset and hide the input.
   const [customCount, setCustomCount] = useState(
     range === "games" && !GAME_COUNTS.includes(Number(lastN)),
   );
@@ -98,36 +100,47 @@ export default function RangeControls({ value, onChange, scope, extra }) {
 
   return (
     <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-      <Typography id={`${id}-label`} variant="subtitle2" component="span">
-        Range
-      </Typography>
       <Stack
         direction="row"
         useFlexGap
         spacing={1.5}
         sx={{ flexWrap: "wrap", alignItems: "flex-end" }}
       >
-        <Select
-          size="small"
-          value={selected}
-          onChange={(e) => choose(e.target.value)}
-          labelId={`${id}-label`}
-          sx={{ minWidth: 200 }}
-        >
-          <ListSubheader>Dates</ListSubheader>
-          {DATE_RANGES.map(([v, label]) => (
-            <MenuItem key={v} value={v}>
-              {label}
-            </MenuItem>
-          ))}
-          <ListSubheader>Most recent games</ListSubheader>
-          {GAME_COUNTS.map((n) => (
-            <MenuItem key={n} value={`n${n}`}>
-              Last {n} games
-            </MenuItem>
-          ))}
-          <MenuItem value="ncustom">Custom number of games</MenuItem>
-        </Select>
+        <Stack spacing={0.75}>
+          <Typography id={`${id}-dates`} variant="subtitle2" component="span">
+            Dates
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            value={games ? null : range}
+            onChange={(e, v) => v && choose(v)}
+            aria-labelledby={`${id}-dates`}
+          >
+            {DATE_RANGES.map(([v, label]) => (
+              <ToggleButton key={v} value={v}>
+                {label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Stack>
+        <Stack spacing={0.75}>
+          <Typography id={`${id}-games`} variant="subtitle2" component="span">
+            Most recent games
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            value={games ? selected : null}
+            onChange={(e, v) => v && choose(v)}
+            aria-labelledby={`${id}-games`}
+          >
+            {GAME_COUNTS.map((n) => (
+              <ToggleButton key={n} value={`n${n}`}>
+                {n}
+              </ToggleButton>
+            ))}
+            <ToggleButton value="ncustom">Custom</ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
         {range === "custom" ? (
           <>
             <DateInput
