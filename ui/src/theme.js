@@ -27,6 +27,10 @@ export const colors = {
     above: ["#dcc3dc", "#c08ac0", "#a04da0", "#800080"],
     below: ["#b3d7db", "#5fa9b0", "#2f7f86", "#1b555a"],
   },
+  // The Set types trend's 4 lines, 1 to 4 features differing. Each is 3:1
+  // or more against the card, and every pair passes the dataviz validator
+  // for color-vision deficiency with all pairs compared, since lines cross.
+  nDiff: ["#2a78d6", "#b85c00", "#0f7f5e", "#a0349b"],
 };
 
 // 1120px of content plus 24px side padding, as a border-box width.

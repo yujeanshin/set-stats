@@ -1,8 +1,8 @@
 // Set types tab (brief-v2 part 2): which kinds of sets I pick more or less
 // often than chance, and how fast. Normal mode, solo games, my finds only.
-// Broad to specific: the 4 n_diff groups, blind spots, the 15 patterns
-// (hover one for its latest finds, click to expand it with more), then sets
-// by how many cards are fresh.
+// Broad to specific: the 4 n_diff groups, their trend, blind spots, the 15
+// patterns (hover one for its latest finds, click to expand it with more),
+// sets by how many cards are fresh, then where on the board I pick from.
 import { Alert, Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import { useApi } from "../api.js";
@@ -15,6 +15,7 @@ import RangeControls, { rangeParams } from "../components/RangeControls.jsx";
 import Tile from "../components/Tile.jsx";
 import { ExampleFinds, ExamplePreview } from "../components/TypeExamples.jsx";
 import TypeTable from "../components/TypeTable.jsx";
+import TypeTrend from "../components/TypeTrend.jsx";
 import { DEFINITIONS, INSTANT_GAP_MS } from "../definitions.js";
 import { useFilters, useTypeRange } from "../filters.js";
 import { countText, intervalText, ratioText } from "../format.js";
@@ -264,6 +265,7 @@ export default function Types() {
       {ready ? (
         <>
           <Summary rows={data.nDiff} />
+          <TypeTrend params={params} dropBreaks={filters.dropBreaks} />
           <BlindSpots
             keys={data.blindSpots}
             patterns={data.patterns}

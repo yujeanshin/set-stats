@@ -552,11 +552,13 @@ test("types: says to rebuild until the saved tables are current", async () => {
   const url = `http://127.0.0.1:${s.address().port}/api/types`;
   const res = await fetch(url);
   const body = await res.json();
+  const trend = await (await fetch(`${url}/trend`)).json();
   const positions = await (await fetch(`${url}/positions`)).json();
   s.close();
   assert.equal(res.status, 200);
   assert.equal(body.needsRebuild, true);
   assert.equal(body.patterns, undefined);
+  assert.equal(trend.needsRebuild, true);
   assert.equal(positions.needsRebuild, true);
 });
 
@@ -581,6 +583,17 @@ test("types/positions: share of finds per position, over the page's scope", asyn
   assert.equal(types.finds, last.finds);
   // The old filter-only endpoint is gone.
   assert.equal((await fetch(`${base}/positions`)).status, 404);
+});
+
+test("types/trend: too few games for a trend says how many it needs", async () => {
+  const { body } = await get("/types/trend?hintsOff=0");
+  assert.equal(body.mode, "normal");
+  assert.equal(body.games, 2);
+  assert.equal(body.minGames, 400);
+  assert.equal(body.size, 200);
+  assert.deepEqual(body.points, []);
+  assert.equal((await get("/types/trend")).body.games, 1);
+  assert.equal((await get("/types/trend?lastN=two")).status, 400);
 });
 
 test("types/examples: my latest finds of every pattern, newest game first", async () => {
