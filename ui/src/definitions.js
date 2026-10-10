@@ -15,7 +15,7 @@ export const DEFINITIONS = {
     "Every set on the board just before this find, including the ones I didn't take.",
   deckLeft: "Cards not yet dealt to the board.",
   fresh:
-    "How many of the chosen set's cards weren't on the board at the previous find, i.e. were dealt since then. Shown as – for a game's first find.",
+    "How many of a set's cards weren't on the board at the previous find, i.e. were dealt since then. Shown as – for a game's first find.",
   diffMarks:
     "C color, S shape, F fill (shade), N number. Filled: that feature differs across the three cards. Hollow: it's the same on all three.",
   // Set types page (brief-v2 part 2)
