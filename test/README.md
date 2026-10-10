@@ -90,7 +90,7 @@ loads the fixture game and a copy of it marked `shuffle` mode, then rebuilds.
 - ratio, interval, take rate, median, and the E < 30 flag for one row; a type never on the board has no ratio and no take rate
 - blind spots: only E ≥ 30 with the whole interval below 1, lowest ratio first, at most 3
 
-`queries.test.js` builds a solo game by hand (four finds, one of them someone else's) and checks picks, expected and present for every pattern, `n_diff` and `n_fresh` against values worked out by hand, through derive's own `saveSetTypes`. it also checks that over each partition total E = total O = finds on the fixture game, and that nothing is returned until `derive_version` is current. `derive.test.js` and `load.test.js` check the saved rows are rebuilt identically, kept for unchanged games and cleared with a re-synced game's finds; `api.test.js` checks `/types` and `/types/examples` with each filter.
+`queries.test.js` builds a solo game by hand (four finds, one of them someone else's) and checks picks, expected and present for every pattern, `n_diff` and `n_fresh` against values worked out by hand, through derive's own `saveSetTypes`. it also checks that over each partition total E = total O = finds on the fixture game, and that nothing is returned until `derive_version` is current. `derive.test.js` and `load.test.js` check the saved rows are rebuilt identically, kept for unchanged games and cleared with a re-synced game's finds; `api.test.js` checks `/types` and `/types/examples` with each filter. `queries.test.js` also checks that reading the examples in batches of 1 game gives the same finds as one batch.
 
 ### `cardFace.test.js`
 

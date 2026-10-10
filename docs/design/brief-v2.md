@@ -87,16 +87,16 @@ Listed for a later decision; nothing here was changed.
 
 - **Set types tab** (`/types`, `ui/src/pages/Types.jsx`), between Solo and Multiplayer in the header. Normal mode, solo games, my finds only, games that started. No model is fitted; that is part 3. From broad to specific:
   - **Summary:** the 4 `n_diff` groups as tiles, each with its Ratio and 95% interval.
-  - **Blind spots:** up to 3 patterns with the lowest Ratio whose upper interval bound is below 1 and whose Expected is at least 30 (`MIN_EXPECTED`). If none qualify, the card says so. Clicking one opens its examples.
+  - **Blind spots:** up to 3 patterns with the lowest Ratio whose upper interval bound is below 1 and whose Expected is at least 30 (`MIN_EXPECTED`). If none qualify, the card says so. Clicking one opens its row in the pattern table and scrolls to it.
   - **All 15 patterns** (`TypeTable.jsx`), grouped by `n_diff` (4 + 6 + 4 + 1). Each pattern is shown with its difference marks and a label such as "color + shape differ". Columns: Picks, Expected, Ratio with a small interval bar around 1.0 (`RatioBar.jsx`), Take rate when present, and Median find time (n). Every column sorts. Rows with Expected under 30 are greyed, and a tooltip says why.
-  - **Examples:** clicking a pattern shows up to 6 of my most recent finds of it (`TypeExamples.jsx`): the three cards, the date and the find time. Each links to the full game page with the replay opened at that find.
+  - **Examples** (`TypeExamples.jsx`): hovering a pattern shows its 3 latest finds (cards, find time, date) in a tooltip that follows the cursor. Clicking the row expands it in place, with up to 6 finds; each links to the full game page with the replay opened at that find. A chevron shows which row is open, and the open row stays with its pattern when the table is sorted.
   - **Set after set:** the same table grouped by the `n_fresh` of the available sets (0 to 3), leaving out each game's first find.
 - **Filters:** the existing filter bar, with the mode shown as fixed. Its Drop breaks and Skip bad timing tooltips say what those filters do on this page. Below it are the date range and Last N games controls, moved out of `OverTime.jsx` into `RangeControls.jsx`. Over time keeps them in local state as before. The Set types page keeps them in the URL (`range`, `from`, `to`, `lastN`), defaulting to all time.
 - **Game page `?find=<seq>`:** opens the board replay at that find and scrolls to it. Opened from the Set types page, the back link reads "Set types" and returns there with its filters.
 - **Saved set-type tables:** `game_set_types` and `my_find_types` (schema v4, `DERIVE_VERSION` 2), filled by derive. See [schema.md](../schema.md#set-types).
 - **API:**
   - `GET /api/types?completedOnly&hintsOff&skipBadTiming&dropBreaks&from&to&lastN` returns `nDiff`, `patterns`, `blindSpots` and `fresh` rows, plus `games`, `finds`, `freshFinds` and `minExpected`. Until the saved tables are current, it returns `needsRebuild`.
-  - `GET /api/types/examples?mask=…` (same filters) returns up to 6 recent finds of one pattern.
+  - `GET /api/types/examples` (same filters) returns up to 6 recent finds for every pattern at once. The page requests it as soon as `/types` has loaded, so hover previews don't wait.
 - **Math** in `lib/setTypes.js` (pure).
 
 ### Definitions
@@ -133,8 +133,5 @@ Invariant, tested on the fixture and true on my data: over a full partition (the
 15. **The tables say to rebuild instead of failing.** On a database from before schema v4, or before the next full rebuild, `/types` answers `needsRebuild`. The statements are prepared on first use, so an older database still serves the rest of the UI.
 16. **The fresh tooltip** now says "a set's cards", since fresh is shown for every set in the replay's other-sets list.
 17. **The filter bar's checkboxes now wrap** at phone width. `flexWrap` was passed to `Stack` as a prop, which current MUI no longer reads, so Skip bad timing ran off the right edge on the dashboard too.
-
-### Not changed, for later
-
-- **`/api/types` takes about 1.05 s warm** with default filters on ~22,000 games, 2.3 s on the first request after the server starts, and 1.6 s warm with Drop breaks on. About 0.3 s of that is `soloGames`, which every dashboard endpoint also pays: find times are only cached for finished games, so the ~3,400 unfinished solo games are replayed on every request. Caching games that sync no longer rechecks (unfinished and created more than a day ago) would speed up every endpoint.
-- **`/api/positions` takes about 4.5 s** on the same data.
+18. **Recent finds open under their own row, with a hover preview**, not in a panel below the table. Below the table they were out of sight when clicking an upper row, and seemed to belong to the last pattern. Considered: a side panel (the six-column table would need to slim down), a popover (covers neighboring rows, awkward on touch), a drawer (covers the table, so comparing patterns means opening and closing it) and leaving the panel but scrolling to it (still looks attached to the last row). Hover isn't available on touch screens; there, a tap expands the row.
+19. **All 15 patterns' examples come in one request, read newest games first.** Ranking every find per pattern with a window function took about 0.85 s on ~22,000 games. The query now reads the newest 64 games, then 128, 256 and so on, and stops once every pattern has 6: about 2 ms on my data. On real data it gives the same finds as the one-query version; a pattern rare in recent games would only make it read more batches.
